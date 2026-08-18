@@ -1,27 +1,27 @@
 # 📚 HManga-library
 
-Website đọc truyện tranh cá nhân — lưu trữ và đọc manga/manhwa/manhua từ nhiều nguồn.
+Website đọc truyện tranh cá nhân — lưu trữ và đọc manga/manhwa/manhua từ nhiều nguồn (tối ưu cho hentaifox).
 
 ## 🏗️ Kiến trúc
 
 ```
 HManga-library/
 ├── backend/          ← FastAPI (Python) — Modular Monolith
-├── frontend/         ← Next.js (App Router) + TailwindCSS
-├── cover-images/     ← Ảnh bìa tải về local
+├── frontend/         ← HTML5 + Modern Dark CSS + Vanilla JS
+├── cover-images/     ← Ảnh bìa tải về local (đặt theo gallery_id)
 ├── database_schema.sql
 └── .env              ← Supabase credentials
 ```
 
 | Thành phần | Công nghệ | Port |
 |---|---|---|
-| Frontend | Next.js 16 + TailwindCSS | `3000` |
+| Frontend | HTML5 + CSS3 + Vanilla JS (Dark theme) | `8000` (FastAPI serve trực tiếp) |
 | Backend | FastAPI + Uvicorn | `8000` |
 | Database | Supabase (PostgreSQL) | Cloud |
 
 ---
 
-## ⚡ Hướng dẫn chạy
+## ⚡ Hướng dẫn chạy (Chỉ cần 1 lệnh duy nhất)
 
 ### Bước 1: Cài đặt Python dependencies
 
@@ -32,81 +32,60 @@ cd D:\AI_My_Project\HManga-library\backend
 pip install -r requirements.txt
 ```
 
-### Bước 2: Cài đặt Node.js dependencies
-
-Mở **terminal mới**, chạy:
-
-```powershell
-cd D:\AI_My_Project\HManga-library\frontend
-npm install
-```
-
-### Bước 3: Khởi chạy Backend (Terminal 1)
+### Bước 2: Khởi chạy Server
 
 ```powershell
 cd D:\AI_My_Project\HManga-library\backend
 uvicorn main:app --reload
 ```
 
-Khi thấy dòng này là backend đã sẵn sàng:
+Khi thấy thông báo sau là hệ thống đã sẵn sàng:
 ```
 INFO:     Uvicorn running on http://127.0.0.1:8000
 INFO:     Application startup complete.
 ```
 
-### Bước 4: Khởi chạy Frontend (Terminal 2)
+### Bước 3: Mở trình duyệt
 
-```powershell
-cd D:\AI_My_Project\HManga-library\frontend
-npm run dev
-```
+Truy cập: **http://localhost:8000** (hoặc `http://127.0.0.1:8000`)
 
-Khi thấy dòng này là frontend đã sẵn sàng:
-```
-▲ Next.js 16.x
-- Local: http://localhost:3000
-✓ Ready
-```
-
-### Bước 5: Mở trình duyệt
-
-Truy cập: **http://localhost:3000**
+*(Không cần cài đặt Node.js hay chạy thêm terminal nào khác!)*
 
 ---
 
 ## 📖 Cách sử dụng
 
-### Thêm truyện mới
-
+### 1. Thêm truyện mới
 1. Bấm **"+ Thêm truyện"** trên thanh điều hướng
-2. **Bước 1 — Kiểm tra URL**: Dán URL ảnh từ hentaifox (ví dụ: `https://i3.hentaifox.com/004/4029076/1t.jpg`) → Bấm **"Phân tích"**
-3. Nhập **tổng số trang** → Bấm **"Cập nhật danh sách"**
-4. Bấm **"Test tải ảnh"** để kiểm tra ảnh load được không
-5. Bấm **"Xác nhận sử dụng URL này"**
-6. **Bước 2 — Thông tin truyện**: Điền tên, tác giả, chọn loại (multi/oneshot), trạng thái, nhập tag
-7. **Bước 3 — Chương**: Chọn số chương
-8. Bấm **"Lưu truyện"**
+2. **Kiểm tra URL**: Dán link ảnh từ hentaifox (VD: `https://i3.hentaifox.com/004/4029076/1t.jpg`) $\rightarrow$ Bấm **"Phân tích"**
+3. Hệ thống sẽ tự động bóc tách `gallery_id` và kiểm tra xem truyện đã tồn tại chưa:
+   - Nếu **đã có trong thư viện**: Cho phép thêm ngay chương mới vào bộ truyện đó.
+   - Nếu **chưa có**: Nhập số trang $\rightarrow$ Bấm **"Cập nhật danh sách trang"** $\rightarrow$ Có thể bấm **"Test tải 3 trang đầu"** để kiểm tra.
+4. Điền tên truyện, tác giả, loại (`multi` hoặc `oneshot`), trạng thái, tags (ấn Enter để thêm), ghi chú.
+5. Bấm **"Lưu & Thêm Truyện Vào Thư Viện"**. Ảnh bìa sẽ tự động tải về `cover-images/{gallery_id}.jpg`.
 
-### Đọc truyện
+### 2. Đọc truyện
+1. Click vào thẻ truyện trên trang chủ $\rightarrow$ Trang chi tiết
+2. Chọn chương cần đọc
+3. Chuyển đổi giữa 2 chế độ đọc:
+   - **📜 Cuộn dọc (Webtoon)**: Tải toàn bộ ảnh theo chiều dọc
+   - **📄 Từng trang (Manga)**: Xem từng ảnh, bấm Next/Prev hoặc dùng **phím mũi tên $\leftarrow$ / $\rightarrow$** trên bàn phím
+4. Dùng nút **⇦ Chương trước** và **Chương sau ⇨** ở chân trang để chuyển chương nhanh chóng.
 
-1. Click vào **card truyện** trên trang chủ
-2. Click vào **chapter** trong danh sách
-3. Chuyển đổi chế độ đọc bằng nút **"📜 Cuộn dọc"** hoặc **"📄 Theo trang"**
-4. Ở chế độ theo trang: dùng phím **←/→** hoặc nút Prev/Next
+### 3. Quản lý truyện & chương (Trang chi tiết)
+- **Sửa thông tin truyện**: Đổi tên, tác giả, trạng thái, chỉnh sửa tag, ghi chú.
+- **Sửa chương**: Thay đổi số thứ tự chương (VD: chuyển chương 1 thành 2) và đổi tên chương.
+- **Thêm chương mới**: Thêm chương trực tiếp từ trang chi tiết.
+- **Xóa truyện**: Xóa toàn bộ dữ liệu trong DB và tự dọn dẹp file ảnh bìa local.
 
-### Tìm kiếm
-
-Bấm **"🔍 Tìm kiếm"** → nhập tên truyện, tác giả, tag, hoặc chọn trạng thái
-
-### Xóa truyện / chapter
-
-Vào trang chi tiết truyện → bấm **"🗑 Xóa truyện"** hoặc nút **"✕"** bên cạnh chapter
+### 4. Tìm kiếm & Lọc (`/search.html`)
+- Tìm kiếm kết hợp theo: Tên truyện, Tác giả, Tag/Thể loại, Trạng thái.
 
 ---
 
-## 🔧 Cấu hình
+## 🔧 Cấu hình biến môi trường (`.env`)
 
-### File `.env` (thư mục gốc)
+File `.env` nằm tại thư mục gốc:
 
 ```env
 SUPABASE_URL=https://xxx.supabase.co
@@ -114,84 +93,27 @@ SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 ```
 
-### File `frontend/.env.local`
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000
-```
-
 ---
 
 ## 🗄️ Database
 
-Schema SQL nằm trong file `database_schema.sql`. Nếu cần tạo lại database:
-
-1. Mở [Supabase Dashboard](https://supabase.com/dashboard) → SQL Editor
-2. Copy nội dung `database_schema.sql` → chạy
-
-### Các bảng
-
-| Bảng | Mô tả |
-|---|---|
-| `comics` | Thông tin bộ truyện (tên, tác giả, loại, trạng thái, cover) |
-| `tags` | Danh sách tag/thể loại |
-| `comic_tags` | Liên kết truyện ↔ tag |
-| `chapters` | Các chương truyện (base_url + total_pages) |
+Schema SQL nằm trong file `database_schema.sql` gồm 4 bảng:
+- `comics`: Thông tin bộ truyện (tên, tác giả, loại, trạng thái, cover)
+- `tags`: Danh sách thể loại
+- `comic_tags`: Bảng liên kết n-n giữa truyện và tag
+- `chapters`: Các chương truyện (`base_url` + `total_pages`)
 
 ---
 
-## 💡 Cách lưu trữ ảnh
+## 💡 Cơ chế lưu trữ ảnh không tốn dung lượng
 
-Hệ thống **KHÔNG tải toàn bộ ảnh về máy**. Thay vào đó:
-
-1. Database chỉ lưu **URL trang đầu tiên** (`base_url`) + **số trang** (`total_pages`) của mỗi chapter
-2. Khi đọc, hệ thống **render URL động** bằng cách thay số trang:
+1. **Không tải toàn bộ ảnh chương về máy**.
+2. Database chỉ lưu **URL trang đầu tiên** (`base_url`) và **số trang** (`total_pages`).
+3. Khi đọc, backend/frontend **render dãy URL động**:
    ```
-   base_url:    https://i3.hentaifox.com/004/4029076/1t.jpg
-   Trang 2:     https://i3.hentaifox.com/004/4029076/2t.jpg
-   Trang 3:     https://i3.hentaifox.com/004/4029076/3t.jpg
+   Trang 1: https://i3.hentaifox.com/004/4029076/1t.jpg
+   Trang 2: https://i3.hentaifox.com/004/4029076/2t.jpg
    ...
    ```
-3. Frontend hiển thị ảnh trực tiếp từ CDN nguồn với `referrerpolicy="no-referrer"`
-4. **Chỉ ảnh bìa** (cover) được tải về local, đặt tên theo gallery_id (ví dụ: `4029076.jpg`)
-
----
-
-## 📁 Cấu trúc chi tiết
-
-### Backend (FastAPI — Modular Monolith)
-```
-backend/
-├── main.py                    # App chính, CORS, router
-├── requirements.txt
-├── core/
-│   ├── config.py              # Đọc .env
-│   └── database.py            # Supabase client
-├── modules/
-│   ├── comics/                # CRUD bộ truyện
-│   ├── chapters/              # CRUD chương + render URL
-│   ├── images/                # Download cover
-│   └── search/                # Tìm kiếm & lọc
-└── cache/
-    └── comics_cache.json      # Cache tự động rebuild
-```
-
-### Frontend (Next.js App Router)
-```
-frontend/src/
-├── app/
-│   ├── page.tsx               # Trang chủ — lưới truyện
-│   ├── comics/add/page.tsx    # Thêm truyện
-│   ├── comics/[id]/page.tsx   # Chi tiết truyện
-│   ├── chapter/[id]/page.tsx  # Đọc chapter
-│   └── search/page.tsx        # Tìm kiếm
-├── components/
-│   ├── ComicCard.tsx          # Card truyện
-│   ├── ChapterReader.tsx      # Reader (2 chế độ)
-│   ├── UrlChecker.tsx         # Phân tích URL
-│   └── TagInput.tsx           # Nhập tag tự do
-└── lib/
-    ├── api.ts                 # API client
-    ├── types.ts               # TypeScript types
-    └── url-parser.ts          # Parse URL hentaifox
-```
+4. Frontend tải ảnh trực tiếp qua CDN nguồn với thuộc tính `referrerpolicy="no-referrer"`.
+5. **Chỉ ảnh bìa** được tải về local `cover-images/` đặt theo `gallery_id` (VD: `4029076.jpg`). Nếu ảnh lỗi, tự động dùng ảnh dự phòng `rem.jpg`.

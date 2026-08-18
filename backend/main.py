@@ -10,28 +10,30 @@ from modules.search.router import router as search_router
 
 app = FastAPI(title="HManga Library API")
 
-# Cấu hình CORS cho frontend React/Vue
+# Cấu hình CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Thư mục chứa cover images
+# Thư mục chứa cover images và frontend
 COVER_DIR = Path(__file__).parent.parent / "cover-images"
 COVER_DIR.mkdir(parents=True, exist_ok=True)
 
-# Đăng ký routes
+FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
+FRONTEND_DIR.mkdir(parents=True, exist_ok=True)
+
+# 1. Đăng ký API routes
 app.include_router(comics_router)
 app.include_router(chapters_router)
 app.include_router(images_router)
 app.include_router(search_router)
 
-# Mount thư mục static cho cover images
+# 2. Mount thư mục static cho cover images
 app.mount("/api/covers", StaticFiles(directory=str(COVER_DIR)), name="covers")
 
-@app.get("/")
-def root():
-    return {"message": "Welcome to HManga Library API"}
+# 3. Mount thư mục static cho Frontend (HTML, CSS, JS)
+app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")

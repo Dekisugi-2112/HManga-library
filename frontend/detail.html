@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi Tiết Truyện — HManga Library</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .detail-header {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        .detail-cover-box {
+            width: 220px;
+            flex-shrink: 0;
+        }
+        .detail-cover {
+            width: 100%;
+            aspect-ratio: 3/4;
+            object-fit: cover;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+        }
+        .detail-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .chapter-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #090d16;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            transition: border-color 0.2s;
+        }
+        .chapter-row:hover {
+            border-color: var(--border-hover);
+        }
+        .chapter-link {
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+        @media (max-width: 640px) {
+            .detail-header {
+                flex-direction: column;
+                align-items: center;
+            }
+            .detail-cover-box {
+                width: 180px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-brand">📚 HManga</a>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">Trang chủ</a>
+                <a href="search.html" class="nav-link">🔍 Tìm kiếm</a>
+                <a href="add.html" class="btn-add">+ Thêm truyện</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content" style="max-width: 900px;">
+        <div id="comic-detail-content">
+            <div style="text-align: center; padding: 60px 0; color: var(--text-dim);">⏳ Đang tải thông tin bộ truyện...</div>
+        </div>
+
+        <!-- CHAPTER LIST CARD -->
+        <div class="card" id="chapters-card" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h2 style="font-size: 18px; font-weight: 700; color: var(--text-main);" id="chapters-heading">Danh Sách Chương (0)</h2>
+                <button type="button" id="btn-open-add-chapter" class="btn btn-primary btn-sm">+ Thêm chương mới</button>
+            </div>
+            <div id="chapter-list-container"></div>
+        </div>
+    </main>
+
+    <!-- ==================== MODAL: SỬA THÔNG TIN TRUYỆN ==================== -->
+    <div id="modal-edit-comic" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title">✏️ Chỉnh Sửa Thông Tin Bộ Truyện</h3>
+                <button type="button" class="modal-close" onclick="closeModal('modal-edit-comic')">&times;</button>
+            </div>
+            <form id="form-edit-comic">
+                <div class="form-group">
+                    <label class="form-label">Tên truyện *</label>
+                    <input type="text" id="edit-comic-title" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Tác giả</label>
+                    <input type="text" id="edit-comic-author" class="form-control">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Loại truyện</label>
+                        <select id="edit-comic-type" class="form-control">
+                            <option value="multi">Nhiều chapter</option>
+                            <option value="oneshot">Oneshot</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Trạng thái</label>
+                        <select id="edit-comic-status" class="form-control">
+                            <option value="ongoing">Đang tiến hành</option>
+                            <option value="completed">Hoàn thành</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Tags / Thể loại</label>
+                    <div id="edit-tags-container"></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ghi chú cá nhân</label>
+                    <textarea id="edit-comic-note" class="form-control" rows="2" style="resize: vertical;"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-edit-comic')">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL: THÊM CHƯƠNG MỚI ==================== -->
+    <div id="modal-add-chapter" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title">➕ Thêm Chương Mới</h3>
+                <button type="button" class="modal-close" onclick="closeModal('modal-add-chapter')">&times;</button>
+            </div>
+            <form id="form-add-chapter">
+                <div class="form-group">
+                    <label class="form-label">Dán link ảnh chương (hentaifox):</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="new-chap-url" class="form-control" placeholder="https://i3.hentaifox.com/004/4029076/1t.jpg" required>
+                        <button type="button" id="btn-parse-new-chap" class="btn btn-secondary btn-sm" style="white-space: nowrap;">Bóc tách</button>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Số thứ tự chương *</label>
+                        <input type="number" id="new-chap-num" class="form-control" step="0.5" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tổng số trang *</label>
+                        <input type="number" id="new-chap-pages" class="form-control" min="1" placeholder="Số trang..." required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Tên chương (Tùy chọn)</label>
+                    <input type="text" id="new-chap-title" class="form-control" placeholder="Tùy chọn...">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-chapter')">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Thêm chương</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL: SỬA CHƯƠNG ==================== -->
+    <div id="modal-edit-chapter" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title">✏️ Chỉnh Sửa Chương</h3>
+                <button type="button" class="modal-close" onclick="closeModal('modal-edit-chapter')">&times;</button>
+            </div>
+            <form id="form-edit-chapter">
+                <input type="hidden" id="edit-chap-id">
+                <div class="form-group">
+                    <label class="form-label">Số thứ tự chương (VD: chuyển 1 thành 2):</label>
+                    <input type="number" id="edit-chap-num" class="form-control" step="0.5" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Tên chương:</label>
+                    <input type="text" id="edit-chap-title" class="form-control" placeholder="Tùy chọn...">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-edit-chapter')">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Lưu chương</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const comicId = parseInt(urlParams.get('id'), 10);
+        let currentComic = null;
+        let editTagsInput = null;
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
+        }
+
+        async function loadComicDetail() {
+            if (!comicId) {
+                document.getElementById('comic-detail-content').innerHTML = `
+                    <div style="text-align: center; padding: 60px 0; color: var(--danger);">
+                        ❌ Không tìm thấy ID truyện hợp lệ! <br><br>
+                        <a href="index.html" class="btn btn-secondary">← Về trang chủ</a>
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                currentComic = await api.getComic(comicId);
+                const coverUrl = api.getCoverUrl(currentComic.cover_filename);
+                const statusBadge = currentComic.status === 'ongoing'
+                    ? '<span class="badge badge-ongoing">Đang tiến hành</span>'
+                    : '<span class="badge badge-completed">Hoàn thành</span>';
+                const typeBadge = currentComic.type === 'oneshot'
+                    ? '<span class="badge badge-oneshot" style="position: static;">Oneshot</span>'
+                    : '<span class="badge" style="background: rgba(255,255,255,0.1); color: var(--text-muted);">Nhiều chương</span>';
+
+                const tagsHtml = (currentComic.tags || []).map(t => `<span class="tag-chip" style="font-size: 11px; padding: 3px 8px;">${t}</span>`).join('');
+                const noteHtml = currentComic.personal_note 
+                    ? `<div style="background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2); border-radius: 8px; padding: 10px 14px; margin-top: 14px; font-size: 13px; color: #c7d2fe;">📝 <b>Ghi chú:</b> ${currentComic.personal_note}</div>`
+                    : '';
+
+                document.getElementById('comic-detail-content').innerHTML = `
+                    <div class="detail-header">
+                        <div class="detail-cover-box">
+                            <img src="${coverUrl}" alt="${currentComic.title}" class="detail-cover" referrerpolicy="no-referrer" onerror="this.src='rem.jpg'">
+                        </div>
+                        <div class="detail-info">
+                            <h1 style="font-size: 24px; font-weight: 800; color: var(--text-main); margin-bottom: 8px;">${currentComic.title}</h1>
+                            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 12px;">Tác giả: <span style="color: var(--text-main); font-weight: 500;">${currentComic.author || 'Chưa rõ'}</span></p>
+                            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
+                                ${statusBadge}
+                                ${typeBadge}
+                            </div>
+                            <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
+                                ${tagsHtml || '<span style="color: var(--text-dim); font-size: 12px;">Chưa có tag nào</span>'}
+                            </div>
+                            ${noteHtml}
+                            <div style="display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap;">
+                                <button type="button" onclick="openEditComicModal()" class="btn btn-secondary btn-sm">✏️ Sửa thông tin</button>
+                                <button type="button" onclick="confirmDeleteComic()" class="btn btn-danger btn-sm">🗑 Xóa bộ truyện</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Render Chapters
+                const chapters = [...(currentComic.chapters || [])].sort((a, b) => a.chapter_number - b.chapter_number);
+                document.getElementById('chapters-heading').textContent = `Danh Sách Chương (${chapters.length})`;
+                const chapContainer = document.getElementById('chapter-list-container');
+                
+                if (chapters.length === 0) {
+                    chapContainer.innerHTML = `<p style="text-align: center; color: var(--text-dim); padding: 30px 0;">Chưa có chương nào. Hãy bấm "+ Thêm chương mới" để thêm!</p>`;
+                } else {
+                    chapContainer.innerHTML = chapters.map(ch => `
+                        <div class="chapter-row">
+                            <a href="reader.html?id=${ch.id}" class="chapter-link">
+                                <span style="font-weight: 700; color: var(--primary); font-family: monospace; font-size: 15px;">Ch.${ch.chapter_number}</span>
+                                <span style="font-size: 14px; font-weight: 500; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${ch.title || ''}</span>
+                                <span style="color: var(--text-dim); font-size: 12px;">(${ch.total_pages} trang)</span>
+                            </a>
+                            <div style="display: flex; gap: 6px;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="openEditChapterModal(${ch.id}, ${ch.chapter_number}, '${ch.title || ''}')">✏️</button>
+                                <button type="button" class="btn btn-danger btn-sm" onclick="confirmDeleteChapter(${ch.id})">✕</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                document.getElementById('chapters-card').style.display = 'block';
+
+            } catch (err) {
+                document.getElementById('comic-detail-content').innerHTML = `
+                    <div style="text-align: center; padding: 60px 0; color: var(--danger);">
+                        ❌ Không thể nạp thông tin bộ truyện! (${err.message})
+                    </div>
+                `;
+            }
+        }
+
+        // === EDIT COMIC ===
+        function openEditComicModal() {
+            if (!currentComic) return;
+            document.getElementById('edit-comic-title').value = currentComic.title;
+            document.getElementById('edit-comic-author').value = currentComic.author || '';
+            document.getElementById('edit-comic-type').value = currentComic.type;
+            document.getElementById('edit-comic-status').value = currentComic.status;
+            document.getElementById('edit-comic-note').value = currentComic.personal_note || '';
+
+            if (!editTagsInput) {
+                editTagsInput = new TagInputComponent('edit-tags-container', currentComic.tags || []);
+            } else {
+                editTagsInput.setTags(currentComic.tags || []);
+            }
+            openModal('modal-edit-comic');
+        }
+
+        document.getElementById('form-edit-comic').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                await api.updateComic(comicId, {
+                    title: document.getElementById('edit-comic-title').value.trim(),
+                    author: document.getElementById('edit-comic-author').value.trim() || undefined,
+                    type: document.getElementById('edit-comic-type').value,
+                    status: document.getElementById('edit-comic-status').value,
+                    tags: editTagsInput.getTags(),
+                    personal_note: document.getElementById('edit-comic-note').value.trim() || undefined
+                });
+                closeModal('modal-edit-comic');
+                showToast('Đã cập nhật thông tin bộ truyện!', 'success');
+                loadComicDetail();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        });
+
+        // === ADD CHAPTER ===
+        document.getElementById('btn-open-add-chapter').addEventListener('click', () => {
+            const chapters = currentComic?.chapters || [];
+            const nextNum = chapters.length > 0 ? Math.max(...chapters.map(c => c.chapter_number)) + 1 : 1;
+            document.getElementById('new-chap-num').value = nextNum;
+            document.getElementById('new-chap-url').value = '';
+            document.getElementById('new-chap-pages').value = '';
+            document.getElementById('new-chap-title').value = '';
+            openModal('modal-add-chapter');
+        });
+
+        document.getElementById('btn-parse-new-chap').addEventListener('click', () => {
+            const url = document.getElementById('new-chap-url').value.trim();
+            const parsed = parseHentaifoxUrl(url);
+            if (!parsed) {
+                showToast('Link không đúng định dạng hentaifox!', 'warning');
+            } else {
+                showToast(`Phát hiện Gallery ID: ${parsed.galleryId}`, 'info');
+            }
+        });
+
+        document.getElementById('form-add-chapter').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const url = document.getElementById('new-chap-url').value.trim();
+            const chapterNum = parseFloat(document.getElementById('new-chap-num').value);
+            const totalPages = parseInt(document.getElementById('new-chap-pages').value, 10);
+            const title = document.getElementById('new-chap-title').value.trim();
+
+            try {
+                await api.createChapter(comicId, {
+                    chapter_number: chapterNum,
+                    title: title || undefined,
+                    base_url: url,
+                    total_pages: totalPages
+                });
+                closeModal('modal-add-chapter');
+                showToast('Đã thêm chương mới thành công!', 'success');
+                loadComicDetail();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        });
+
+        // === EDIT CHAPTER ===
+        function openEditChapterModal(id, num, title) {
+            document.getElementById('edit-chap-id').value = id;
+            document.getElementById('edit-chap-num').value = num;
+            document.getElementById('edit-chap-title').value = title;
+            openModal('modal-edit-chapter');
+        }
+
+        document.getElementById('form-edit-chapter').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const chapId = parseInt(document.getElementById('edit-chap-id').value, 10);
+            const chapNum = parseFloat(document.getElementById('edit-chap-num').value);
+            const chapTitle = document.getElementById('edit-chap-title').value.trim();
+
+            try {
+                await api.updateChapter(chapId, {
+                    chapter_number: chapNum,
+                    title: chapTitle || undefined
+                });
+                closeModal('modal-edit-chapter');
+                showToast('Đã cập nhật chương!', 'success');
+                loadComicDetail();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        });
+
+        // === DELETE ===
+        async function confirmDeleteChapter(chapId) {
+            if (!confirm('Bạn có chắc chắn muốn xóa chương này không?')) return;
+            try {
+                await api.deleteChapter(chapId);
+                showToast('Đã xóa chương thành công!', 'success');
+                loadComicDetail();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function confirmDeleteComic() {
+            if (!confirm(`Bạn có chắc chắn muốn xóa hoàn toàn bộ truyện "${currentComic.title}" và toàn bộ các chương không?`)) return;
+            try {
+                await api.deleteComic(comicId);
+                showToast('Đã xóa bộ truyện thành công!', 'success');
+                setTimeout(() => { window.location.href = 'index.html'; }, 800);
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        // Initialize
+        loadComicDetail();
+    </script>
+</body>
+</html>

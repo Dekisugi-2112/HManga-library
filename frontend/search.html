@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tìm Kiếm Nâng Cao — HManga Library</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-brand">📚 HManga</a>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">Trang chủ</a>
+                <a href="search.html" class="nav-link active">🔍 Tìm kiếm</a>
+                <a href="add.html" class="btn-add">+ Thêm truyện</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">🔍 Tìm Kiếm & Lọc Truyện</h1>
+            <p class="page-subtitle">Tìm kiếm kết hợp theo nhiều tiêu chí: tên bộ truyện, tác giả, thể loại và trạng thái</p>
+        </div>
+
+        <!-- SEARCH FORM -->
+        <div class="card" style="margin-bottom: 24px;">
+            <form id="search-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Tên truyện:</label>
+                        <input type="text" id="search-q" class="form-control" placeholder="Nhập từ khóa tên truyện...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tác giả:</label>
+                        <input type="text" id="search-author" class="form-control" placeholder="Nhập tên tác giả...">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Tag / Thể loại:</label>
+                        <input type="text" id="search-tag" class="form-control" placeholder="Ví dụ: romance, comedy, action...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Trạng thái:</label>
+                        <select id="search-status" class="form-control">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="ongoing">Đang tiến hành</option>
+                            <option value="completed">Hoàn thành</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="btn btn-primary">🔍 Bắt đầu tìm kiếm</button>
+                    <button type="button" id="btn-reset-search" class="btn btn-secondary">Đặt lại bộ lọc</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- RESULTS SECTION -->
+        <div id="results-header" style="margin-bottom: 16px; font-size: 15px; font-weight: 600; color: var(--text-muted); display: none;">
+            Kết quả tìm kiếm (<span id="results-count" style="color: var(--primary);">0</span>)
+        </div>
+
+        <div id="results-grid" class="comic-grid"></div>
+    </main>
+
+    <script src="app.js"></script>
+    <script>
+        async function doSearch() {
+            const q = document.getElementById('search-q').value.trim();
+            const author = document.getElementById('search-author').value.trim();
+            const tag = document.getElementById('search-tag').value.trim();
+            const status = document.getElementById('search-status').value;
+
+            const grid = document.getElementById('results-grid');
+            const resHeader = document.getElementById('results-header');
+            const countEl = document.getElementById('results-count');
+
+            grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-dim);">⏳ Đang tìm kiếm...</div>';
+
+            try {
+                const results = await api.searchComics({ q, author, tag, status });
+                resHeader.style.display = 'block';
+                countEl.textContent = results.length;
+
+                if (results.length === 0) {
+                    grid.innerHTML = `
+                        <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--text-muted);">
+                            <p style="font-size: 16px; margin-bottom: 6px;">Không tìm thấy bộ truyện nào phù hợp với bộ lọc</p>
+                            <p style="font-size: 13px; color: var(--text-dim);">Hãy thử giảm bớt điều kiện tìm kiếm</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                grid.innerHTML = results.map(comic => {
+                    const coverUrl = api.getCoverUrl(comic.cover_filename);
+                    const statusBadge = comic.status === 'ongoing' 
+                        ? '<span class="badge badge-status badge-ongoing">Đang tiến hành</span>'
+                        : '<span class="badge badge-status badge-completed">Hoàn thành</span>';
+                    const oneshotBadge = comic.type === 'oneshot' 
+                        ? '<span class="badge badge-oneshot">Oneshot</span>' 
+                        : '';
+
+                    const tagsHtml = (comic.tags || []).slice(0, 3).map(t => 
+                        `<span class="tag-chip">${t}</span>`
+                    ).join('');
+
+                    return `
+                        <a href="detail.html?id=${comic.id}" class="comic-card">
+                            <div class="card-thumb-wrapper">
+                                <img src="${coverUrl}" alt="${comic.title}" class="card-thumb" referrerpolicy="no-referrer" onerror="this.src='rem.jpg'">
+                                ${statusBadge}
+                                ${oneshotBadge}
+                            </div>
+                            <div class="card-body">
+                                <div class="card-title" title="${comic.title}">${comic.title}</div>
+                                <div class="card-author">${comic.author || 'Tác giả chưa rõ'}</div>
+                                <div class="card-tags">${tagsHtml}</div>
+                            </div>
+                        </a>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                grid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--danger);">
+                        ❌ Lỗi tìm kiếm: ${err.message}
+                    </div>
+                `;
+            }
+        }
+
+        document.getElementById('search-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            doSearch();
+        });
+
+        document.getElementById('btn-reset-search').addEventListener('click', () => {
+            document.getElementById('search-form').reset();
+            doSearch();
+        });
+
+        // Tự động tìm tất cả khi vừa vào trang
+        doSearch();
+    </script>
+</body>
+</html>

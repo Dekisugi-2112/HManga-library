@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HManga Library — Thư viện truyện tranh cá nhân</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-brand">📚 HManga</a>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link active">Trang chủ</a>
+                <a href="search.html" class="nav-link">🔍 Tìm kiếm</a>
+                <a href="add.html" class="btn-add">+ Thêm truyện</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 12px;">
+            <div>
+                <h1 class="page-title">Thư Viện Truyện</h1>
+                <p class="page-subtitle" id="comic-count">Đang tải danh sách...</p>
+            </div>
+            
+            <!-- Quick Search & Filter Controls -->
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                <input type="text" id="quick-search" class="form-control" placeholder="Tìm tên truyện..." style="width: 220px;">
+                
+                <div style="display: flex; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 2px;">
+                    <button class="btn btn-sm btn-filter active" data-status="" style="color: #fff; background: var(--primary);">Tất cả</button>
+                    <button class="btn btn-sm btn-filter" data-status="ongoing" style="color: var(--text-muted); background: transparent;">Đang tiến hành</button>
+                    <button class="btn btn-sm btn-filter" data-status="completed" style="color: var(--text-muted); background: transparent;">Hoàn thành</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comic Grid -->
+        <div id="comic-grid" class="comic-grid">
+            <div style="grid-column: 1 / -1; text-align: center; padding: 60px 0; color: var(--text-dim);">
+                ⏳ Đang tải thư viện truyện...
+            </div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+    <script>
+        let currentStatus = '';
+        let searchQuery = '';
+        let debounceTimer;
+
+        async function loadComics() {
+            const grid = document.getElementById('comic-grid');
+            const countEl = document.getElementById('comic-count');
+            
+            try {
+                const comics = await api.getComics({ status: currentStatus, q: searchQuery });
+                countEl.textContent = `${comics.length} bộ truyện trong thư viện`;
+
+                if (comics.length === 0) {
+                    grid.innerHTML = `
+                        <div style="grid-column: 1 / -1; text-align: center; padding: 80px 20px;">
+                            <p style="font-size: 18px; color: var(--text-muted); margin-bottom: 8px;">Chưa có bộ truyện nào phù hợp</p>
+                            <p style="font-size: 14px; color: var(--text-dim); margin-bottom: 20px;">Bạn có thể bắt đầu bằng cách thêm một bộ truyện mới từ hentaifox</p>
+                            <a href="add.html" class="btn btn-primary">+ Thêm truyện ngay</a>
+                        </div>
+                    `;
+                    return;
+                }
+
+                grid.innerHTML = comics.map(comic => {
+                    const coverUrl = api.getCoverUrl(comic.cover_filename);
+                    const statusBadge = comic.status === 'ongoing' 
+                        ? '<span class="badge badge-status badge-ongoing">Đang tiến hành</span>'
+                        : '<span class="badge badge-status badge-completed">Hoàn thành</span>';
+                    const oneshotBadge = comic.type === 'oneshot' 
+                        ? '<span class="badge badge-oneshot">Oneshot</span>' 
+                        : '';
+
+                    const tagsHtml = (comic.tags || []).slice(0, 3).map(t => 
+                        `<span class="tag-chip">${t}</span>`
+                    ).join('') + ((comic.tags && comic.tags.length > 3) ? `<span class="tag-chip">+${comic.tags.length - 3}</span>` : '');
+
+                    return `
+                        <a href="detail.html?id=${comic.id}" class="comic-card">
+                            <div class="card-thumb-wrapper">
+                                <img src="${coverUrl}" alt="${comic.title}" class="card-thumb" referrerpolicy="no-referrer" onerror="this.src='rem.jpg'">
+                                ${statusBadge}
+                                ${oneshotBadge}
+                            </div>
+                            <div class="card-body">
+                                <div class="card-title" title="${comic.title}">${comic.title}</div>
+                                <div class="card-author">${comic.author || 'Tác giả chưa rõ'}</div>
+                                <div class="card-tags">${tagsHtml}</div>
+                            </div>
+                        </a>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                grid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 60px 0; color: var(--danger);">
+                        ❌ Không thể kết nối tới máy chủ backend. Vui lòng đảm bảo backend đang chạy tại port 8000!
+                    </div>
+                `;
+            }
+        }
+
+        // Filter button clicks
+        document.querySelectorAll('.btn-filter').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.btn-filter').forEach(b => {
+                    b.style.background = 'transparent';
+                    b.style.color = 'var(--text-muted)';
+                });
+                btn.style.background = 'var(--primary)';
+                btn.style.color = '#fff';
+                currentStatus = btn.getAttribute('data-status');
+                loadComics();
+            });
+        });
+
+        // Search input
+        document.getElementById('quick-search').addEventListener('input', (e) => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                searchQuery = e.target.value.trim();
+                loadComics();
+            }, 300);
+        });
+
+        // Initialize
+        loadComics();
+    </script>
+</body>
+</html>
