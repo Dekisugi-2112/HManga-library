@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotlink Comic & CDN Tester - Raincastle</title>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #161e2e;
+            --card-border: #283548;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #22c55e;
+            --error: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 24px 16px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 16px;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: #818cf8;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .alert-box {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 860px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .card h2 {
+            font-size: 17px;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #e2e8f0;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #cbd5e1;
+            margin-bottom: 6px;
+        }
+
+        input[type="text"], input[type="number"], textarea, select {
+            width: 100%;
+            background: #090d16;
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: var(--text-main);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus, textarea:focus, select:focus, input[type="number"]:focus {
+            border-color: var(--primary);
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 18px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-success {
+            background: #10b981;
+        }
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: #64748b;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .preset-tag {
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            color: #a5b4fc;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .preset-tag:hover {
+            background: rgba(99, 102, 241, 0.3);
+        }
+
+        .preview-box {
+            margin-top: 10px;
+            border-radius: 8px;
+            background: #090d16;
+            border: 1px solid var(--card-border);
+            padding: 12px;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .preview-box img {
+            max-width: 100%;
+            max-height: 240px;
+            border-radius: 4px;
+            object-fit: contain;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-success { background: rgba(34, 197, 94, 0.2); color: var(--success); }
+        .badge-error { background: rgba(239, 68, 68, 0.2); color: var(--error); }
+        .badge-info { background: rgba(99, 102, 241, 0.2); color: #a5b4fc; }
+
+        .metrics {
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Comic Reader Simulation */
+        .reader-container {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 24px;
+        }
+
+        .reader-stats {
+            display: flex;
+            gap: 16px;
+            padding: 12px 16px;
+            background: #090d16;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            border: 1px solid var(--card-border);
+        }
+
+        .stat-item {
+            font-size: 13px;
+        }
+        .stat-item span {
+            font-weight: bold;
+            color: #818cf8;
+        }
+
+        .reader-pages {
+            max-width: 760px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .page-wrapper {
+            position: relative;
+            background: #090d16;
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .page-wrapper img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .page-loading-indicator {
+            padding: 40px 20px;
+            color: var(--text-muted);
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .page-number-tag {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(0,0,0,0.8);
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            z-index: 2;
+        }
+
+        .page-status {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            z-index: 2;
+        }
+
+        .error-placeholder {
+            color: var(--error);
+            font-size: 13px;
+            text-align: center;
+            padding: 30px 16px;
+        }
+
+        .code-snippet {
+            background: #000;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #38bdf8;
+            font-family: monospace;
+        }
+
+        .pattern-tools {
+            background: #090d16;
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚡ Raincastle - Kiểm Tra Hotlink & Khả Thi Dữ Liệu Ảnh Truyện</h1>
+            <p class="subtitle">Công cụ giả lập đọc truyện trực tiếp từ CDN nguồn để đo tốc độ tải, độ trễ và độ tương thích</p>
+        </header>
+
+        <div class="grid-2">
+            <!-- 1. KIỂM TRA 1 URL ẢNH BẤT KỲ -->
+            <div class="card">
+                <h2>🔍 1. Kiểm Tra 1 URL File Ảnh Đơn Lẻ</h2>
+                <div class="form-group">
+                    <label>Dán link ảnh trang truyện:</label>
+                    <input type="text" id="single-url" placeholder="https://domain.com/comics/chap1/01.jpg" />
+                </div>
+                
+                <div class="form-group">
+                    <label>Mẫu test nhanh:</label>
+                    <div class="btn-group">
+                        <span class="preset-tag" onclick="setPreset('https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800')">Unsplash CDN</span>
+                        <span class="preset-tag" onclick="setPreset('https://picsum.photos/600/900')">Lorem Image</span>
+                    </div>
+                </div>
+
+                <div class="btn-group" style="margin-top: 14px;">
+                    <button class="btn" onclick="testSingleUrl()">▶ Bắt đầu kiểm tra URL</button>
+                    <button class="btn btn-outline" onclick="clearSingleTest()">Xóa</button>
+                </div>
+            </div>
+
+            <!-- KẾT QUẢ SO SÁNH REFERRER -->
+            <div class="card">
+                <h2>📊 Kết Quả Kiểm Tra Referrer</h2>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div>
+                        <span style="font-size: 12px; color: var(--text-muted);">Mặc định (Có Referer):</span>
+                        <div class="preview-box" id="box-default">
+                            <span style="font-size: 12px; color: var(--text-muted);">Chờ kiểm tra...</span>
+                        </div>
+                        <div class="metrics" id="metric-default"></div>
+                    </div>
+
+                    <div>
+                        <span style="font-size: 12px; color: #818cf8; font-weight: 600;"><code>no-referrer</code>:</span>
+                        <div class="preview-box" id="box-noreferrer">
+                            <span style="font-size: 12px; color: var(--text-muted);">Chờ kiểm tra...</span>
+                        </div>
+                        <div class="metrics" id="metric-noreferrer"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. BỘ TẠO DÃY TRANG VÀ TEST CẢ CHAPTER -->
+        <div class="reader-container">
+            <h2>📚 2. Giả Lập Đọc Cả Chương Truyện (Batch & Stress Test)</h2>
+            <p class="subtitle" style="margin-bottom: 16px;">
+                Tải đồng loạt toàn bộ ảnh của một chapter để kiểm tra xem có bị giới hạn băng thông, chặn IP hoặc lag không.
+            </p>
+
+            <!-- Bộ sinh URL thông minh -->
+            <div class="pattern-tools">
+                <label style="color: #818cf8; margin-bottom: 8px;">🎯 Bộ Sinh Dãy URL Tự Động (Tránh nhập thủ công):</label>
+                <div style="display: grid; grid-template-columns: 3fr 1fr 1.2fr 1.5fr; gap: 10px; align-items: end;">
+                    <div>
+                        <label style="font-size: 12px;">Dán 1 link ảnh bất kỳ (Ví dụ trang 1 hoặc 00):</label>
+                        <input type="text" id="pattern-sample" placeholder="https://cdn.example.com/chap1/01.jpg">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px;">Bắt đầu từ trang:</label>
+                        <input type="number" id="pattern-start" value="1" min="0">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px;">Số trang:</label>
+                        <input type="number" id="pattern-count" value="15" min="1" max="60">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px;">Định dạng số:</label>
+                        <select id="pattern-format">
+                            <option value="auto">Tự nhận diện (01 hoặc 1)</option>
+                            <option value="pad2">2 chữ số (00, 01, 02...)</option>
+                            <option value="pad3">3 chữ số (000, 001, 002...)</option>
+                            <option value="no_pad">Không đệm số 0 (0, 1, 2, 3...)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="btn-group" style="margin-top: 10px;">
+                    <button class="btn btn-outline" style="font-size: 12px; padding: 6px 12px;" onclick="autoGenerateUrls()">
+                        ⚡ Tự động tạo danh sách trang
+                    </button>
+                    <button class="btn btn-outline" style="font-size: 12px; padding: 6px 12px;" onclick="generateDummyUrls(12)">
+                        🎲 Tạo 12 ảnh mẫu thử nghiệm
+                    </button>
+                    <button class="btn btn-outline" style="font-size: 12px; padding: 6px 12px;" onclick="removeDuplicateUrls()">
+                        🧹 Loại bỏ các link bị trùng lặp
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Danh sách URL ảnh của Chapter (Mỗi dòng 1 URL):</label>
+                <textarea id="chapter-urls" rows="6" placeholder="Dán danh sách các URL ảnh vào đây..."></textarea>
+            </div>
+
+            <div class="btn-group" style="margin-bottom: 16px;">
+                <button class="btn btn-success" onclick="startChapterSimulation()">🚀 Bắt đầu tải và đọc chương truyện</button>
+                <button class="btn btn-outline" onclick="clearChapterSimulation()">Xóa kết quả</button>
+            </div>
+
+            <!-- Thống kê -->
+            <div class="reader-stats" id="reader-stats" style="display: none;">
+                <div class="stat-item">Tổng số trang: <span id="stat-total">0</span></div>
+                <div class="stat-item">Tải thành công: <span id="stat-success" style="color: var(--success);">0</span></div>
+                <div class="stat-item">Lỗi / Chặn: <span id="stat-failed" style="color: var(--error);">0</span></div>
+                <div class="stat-item">Tổng thời gian: <span id="stat-time">0 ms</span></div>
+                <div class="stat-item">Tốc độ TB/trang: <span id="stat-avg">0 ms</span></div>
+            </div>
+
+            <!-- Danh sách trang truyện mô phỏng -->
+            <div class="reader-pages" id="reader-pages"></div>
+        </div>
+    </div>
+
+    <script>
+        function setPreset(url) {
+            document.getElementById('single-url').value = url;
+            testSingleUrl();
+        }
+
+        // Test 1 URL đơn lẻ
+        function testSingleUrl() {
+            const url = document.getElementById('single-url').value.trim();
+            if (!url) {
+                alert('Vui lòng nhập 1 URL ảnh!');
+                return;
+            }
+
+            const boxDefault = document.getElementById('box-default');
+            const boxNoRef = document.getElementById('box-noreferrer');
+            const metricDefault = document.getElementById('metric-default');
+            const metricNoRef = document.getElementById('metric-noreferrer');
+
+            boxDefault.innerHTML = '<span style="color: var(--text-muted); font-size:12px;">Đang tải...</span>';
+            boxNoRef.innerHTML = '<span style="color: var(--text-muted); font-size:12px;">Đang tải...</span>';
+            metricDefault.innerHTML = '';
+            metricNoRef.innerHTML = '';
+
+            // 1. Mặc định
+            const t1Start = performance.now();
+            const img1 = new Image();
+            img1.onload = () => {
+                const duration = Math.round(performance.now() - t1Start);
+                boxDefault.innerHTML = '';
+                boxDefault.appendChild(img1);
+                metricDefault.innerHTML = `<span>Tốc độ: <b>${duration}ms</b></span><span class="badge badge-success">OK</span>`;
+            };
+            img1.onerror = () => {
+                boxDefault.innerHTML = '<div class="error-placeholder">❌ Lỗi tải (403/404 hoặc bị chặn Referer)</div>';
+                metricDefault.innerHTML = `<span class="badge badge-error">Bị chặn / Lỗi</span>`;
+            };
+            img1.src = url;
+
+            // 2. no-referrer
+            const t2Start = performance.now();
+            const img2 = new Image();
+            img2.referrerPolicy = "no-referrer";
+            img2.onload = () => {
+                const duration = Math.round(performance.now() - t2Start);
+                boxNoRef.innerHTML = '';
+                boxNoRef.appendChild(img2);
+                metricNoRef.innerHTML = `<span>${img2.naturalWidth}x${img2.naturalHeight}px (${duration}ms)</span><span class="badge badge-success">Thành công</span>`;
+            };
+            img2.onerror = () => {
+                boxNoRef.innerHTML = '<div class="error-placeholder">❌ Không thể tải ảnh trực tiếp</div>';
+                metricNoRef.innerHTML = `<span class="badge badge-error">Thất bại</span>`;
+            };
+            img2.src = url;
+        }
+
+        function clearSingleTest() {
+            document.getElementById('single-url').value = '';
+            document.getElementById('box-default').innerHTML = '<span style="font-size: 12px; color: var(--text-muted);">Chờ kiểm tra...</span>';
+            document.getElementById('box-noreferrer').innerHTML = '<span style="font-size: 12px; color: var(--text-muted);">Chờ kiểm tra...</span>';
+            document.getElementById('metric-default').innerHTML = '';
+            document.getElementById('metric-noreferrer').innerHTML = '';
+        }
+
+        // Tự động tạo danh sách URL thông minh từ 1 link mẫu
+        function autoGenerateUrls() {
+            const raw = document.getElementById('pattern-sample').value.trim();
+            if (!raw) {
+                alert('Vui lòng dán 1 link ảnh mẫu (ví dụ trang 1 hoặc 00)!');
+                return;
+            }
+
+            const start = parseInt(document.getElementById('pattern-start').value) || 0;
+            const count = parseInt(document.getElementById('pattern-count').value) || 10;
+            const formatMode = document.getElementById('pattern-format').value;
+
+            // Tìm số trang trong URL (ví dụ .../01.jpg hoặc .../p1.webp hoặc .../page-001.png)
+            // Tìm cụm số cuối cùng trước phần mở rộng file hoặc dấu gạch chéo
+            const match = raw.match(/(.*?)(\d+)(\.[a-zA-Z0-9]+(?:\?.*)?|\/?)$/);
+
+            const urls = [];
+
+            if (match) {
+                const prefix = match[1];
+                const originalNumStr = match[2];
+                const suffix = match[3] || '';
+                const origLength = originalNumStr.length;
+
+                for (let i = 0; i < count; i++) {
+                    const currentNum = start + i;
+                    let formattedNum = currentNum.toString();
+
+                    if (formatMode === 'pad2') {
+                        formattedNum = currentNum.toString().padStart(2, '0');
+                    } else if (formatMode === 'pad3') {
+                        formattedNum = currentNum.toString().padStart(3, '0');
+                    } else if (formatMode === 'no_pad') {
+                        formattedNum = currentNum.toString();
+                    } else { // auto
+                        formattedNum = currentNum.toString().padStart(origLength, '0');
+                    }
+
+                    urls.push(prefix + formattedNum + suffix);
+                }
+            } else {
+                // Nếu không phát hiện số, chèn vào đuôi
+                for (let i = 0; i < count; i++) {
+                    const currentNum = start + i;
+                    urls.push(raw + (raw.includes('?') ? '&' : '?') + 'page=' + currentNum);
+                }
+            }
+
+            document.getElementById('chapter-urls').value = urls.join('\n');
+        }
+
+        // Tạo ảnh mẫu Lorem
+        function generateDummyUrls(count) {
+            const urls = [];
+            for (let i = 1; i <= count; i++) {
+                urls.push(`https://picsum.photos/700/1000?random=${i}`);
+            }
+            document.getElementById('chapter-urls').value = urls.join('\n');
+        }
+
+        // Loại bỏ URL trùng lặp
+        function removeDuplicateUrls() {
+            const raw = document.getElementById('chapter-urls').value.trim();
+            if (!raw) return;
+            const urls = raw.split('\n').map(u => u.trim()).filter(u => u.length > 0);
+            const uniqueUrls = [...new Set(urls)];
+            document.getElementById('chapter-urls').value = uniqueUrls.join('\n');
+            alert(`Đã lọc: Từ ${urls.length} dòng còn ${uniqueUrls.length} URL duy nhất!`);
+        }
+
+        // Giả lập đọc cả chương truyện (Batch Load chuẩn DOM)
+        function startChapterSimulation() {
+            const raw = document.getElementById('chapter-urls').value.trim();
+            if (!raw) {
+                alert('Vui lòng tạo hoặc dán danh sách URL ảnh!');
+                return;
+            }
+
+            const urls = raw.split('\n').map(u => u.trim()).filter(u => u.length > 0);
+            const container = document.getElementById('reader-pages');
+            const statsBar = document.getElementById('reader-stats');
+            
+            container.innerHTML = '';
+            statsBar.style.display = 'flex';
+
+            let total = urls.length;
+            let completed = 0;
+            let successCount = 0;
+            let failedCount = 0;
+            let totalDuration = 0;
+
+            document.getElementById('stat-total').textContent = total;
+            document.getElementById('stat-success').textContent = '0';
+            document.getElementById('stat-failed').textContent = '0';
+            document.getElementById('stat-time').textContent = 'Đang tải...';
+            document.getElementById('stat-avg').textContent = '...';
+
+            const startTime = performance.now();
+
+            urls.forEach((url, index) => {
+                const pageNum = index + 1;
+                const pageWrapper = document.createElement('div');
+                pageWrapper.className = 'page-wrapper';
+                pageWrapper.id = `page-wrap-${pageNum}`;
+
+                // Tạo tag số trang và status badge
+                const numTag = document.createElement('span');
+                numTag.className = 'page-number-tag';
+                numTag.textContent = `Trang ${pageNum}`;
+
+                const statusTag = document.createElement('span');
+                statusTag.className = 'page-status badge badge-info';
+                statusTag.textContent = 'Đang nạp...';
+
+                const loadingIndicator = document.createElement('div');
+                loadingIndicator.className = 'page-loading-indicator';
+                loadingIndicator.innerHTML = `⏳ Đang tải trang ${pageNum}...<br><span style="font-size:11px; color:#64748b; word-break: break-all;">${url}</span>`;
+
+                pageWrapper.appendChild(numTag);
+                pageWrapper.appendChild(statusTag);
+                pageWrapper.appendChild(loadingIndicator);
+                container.appendChild(pageWrapper);
+
+                // Tạo thẻ <img> gắn thẳng vào DOM
+                const img = document.createElement('img');
+                img.referrerPolicy = 'no-referrer';
+                img.style.display = 'none';
+
+                const pageStart = performance.now();
+
+                img.onload = function() {
+                    const pageDuration = Math.round(performance.now() - pageStart);
+                    totalDuration += pageDuration;
+                    successCount++;
+                    completed++;
+
+                    numTag.textContent = `Trang ${pageNum} (${img.naturalWidth}x${img.naturalHeight}px - ${pageDuration}ms)`;
+                    statusTag.className = 'page-status badge badge-success';
+                    statusTag.textContent = 'Thành công';
+
+                    loadingIndicator.remove();
+                    img.style.display = 'block';
+                    updateStats();
+                };
+
+                img.onerror = function() {
+                    failedCount++;
+                    completed++;
+
+                    statusTag.className = 'page-status badge badge-error';
+                    statusTag.textContent = 'Lỗi ảnh';
+
+                    loadingIndicator.innerHTML = `
+                        <div class="error-placeholder">
+                            ❌ Không thể tải trang ${pageNum}.<br>
+                            <span style="font-size: 11px; color: var(--text-muted); word-break: break-all;">${url}</span><br>
+                            <button class="btn btn-outline" style="margin-top: 10px; padding: 4px 10px; font-size: 12px;" onclick="retrySinglePage(${pageNum}, '${url}')">Thử lại</button>
+                        </div>
+                    `;
+                    updateStats();
+                };
+
+                pageWrapper.appendChild(img);
+                img.src = url;
+            });
+
+            function updateStats() {
+                document.getElementById('stat-success').textContent = successCount;
+                document.getElementById('stat-failed').textContent = failedCount;
+
+                if (completed === total) {
+                    const totalTime = Math.round(performance.now() - startTime);
+                    document.getElementById('stat-time').textContent = totalTime + ' ms';
+                    document.getElementById('stat-avg').textContent = Math.round(totalDuration / (successCount || 1)) + ' ms';
+                }
+            }
+        }
+
+        function retrySinglePage(pageNum, url) {
+            const pageWrapper = document.getElementById(`page-wrap-${pageNum}`);
+            if (!pageWrapper) return;
+
+            pageWrapper.innerHTML = `
+                <span class="page-number-tag">Trang ${pageNum}</span>
+                <span class="page-status badge badge-info">Đang thử lại...</span>
+                <div class="page-loading-indicator">⏳ Đang kết nối lại trang ${pageNum}...</div>
+            `;
+
+            const img = document.createElement('img');
+            img.referrerPolicy = 'no-referrer';
+            img.style.display = 'none';
+
+            img.onload = function() {
+                pageWrapper.innerHTML = `
+                    <span class="page-number-tag">Trang ${pageNum} (${img.naturalWidth}x${img.naturalHeight}px)</span>
+                    <span class="page-status badge badge-success">Thành công</span>
+                `;
+                img.style.display = 'block';
+                pageWrapper.appendChild(img);
+            };
+
+            img.onerror = function() {
+                pageWrapper.innerHTML = `
+                    <span class="page-number-tag">Trang ${pageNum}</span>
+                    <span class="page-status badge badge-error">Vẫn lỗi</span>
+                    <div class="error-placeholder">
+                        ❌ Vẫn không thể tải trang này.<br>
+                        <button class="btn btn-outline" style="margin-top: 10px; padding: 4px 10px; font-size: 12px;" onclick="retrySinglePage(${pageNum}, '${url}')">Thử lại lần nữa</button>
+                    </div>
+                `;
+            };
+
+            pageWrapper.appendChild(img);
+            img.src = url + (url.includes('?') ? '&' : '?') + '_r=' + Date.now();
+        }
+
+        function clearChapterSimulation() {
+            document.getElementById('chapter-urls').value = '';
+            document.getElementById('reader-pages').innerHTML = '';
+            document.getElementById('reader-stats').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
