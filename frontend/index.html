@@ -1,39 +1,67 @@
+<!--
+  HManga Library — Trang Chủ Thư Viện Truyện (index.html)
+  ======================================================
+  Nhiệm vụ:
+  - Hiển thị danh sách tất cả các bộ truyện đã lưu trong thư viện dưới dạng lưới thẻ (Grid Cards).
+  - Thanh tìm kiếm nhanh thời gian thực (live search with debounce).
+  - Thanh điều hướng (Navbar) với logo thương hiệu, nút tìm kiếm trung tâm và nút thêm truyện.
+-->
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HManga Library — Thư viện truyện tranh cá nhân</title>
+    <!-- Favicon website -->
+    <link rel="icon" type="image/jpeg" href="rem.jpg">
+    <!-- File stylesheet dùng chung -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Navbar -->
+    <!-- 1. Thanh điều hướng trên cùng (Navbar) -->
     <nav class="navbar">
         <div class="nav-container">
-            <a href="index.html" class="nav-brand">📚 HManga</a>
+            <!-- Logo thương hiệu và tên ứng dụng -->
+            <a href="index.html" class="nav-brand">
+                <img src="rem.jpg" alt="HManga Logo" class="nav-logo">
+                <span>HManga</span>
+            </a>
+
+            <!-- Nút tìm kiếm đặt ở chính giữa Navbar -->
+            <div class="nav-center">
+                <a href="search.html" class="nav-link nav-search-pill">
+                    <img src="data-icon/search.png" alt="Tìm kiếm" class="nav-icon">
+                    <span>Tìm kiếm</span>
+                </a>
+            </div>
+
+            <!-- Các nút hành động bên phải Navbar -->
             <div class="nav-links">
-                <a href="index.html" class="nav-link active">Trang chủ</a>
-                <a href="search.html" class="nav-link">🔍 Tìm kiếm</a>
-                <a href="add.html" class="btn-add">+ Thêm truyện</a>
+                <a href="tags.html" class="nav-link">🏷️ Thể loại</a>
+                <a href="authors.html" class="nav-link">✍️ Tác giả</a>
+                <a href="add.html" class="btn-add">
+                    <img src="data-icon/plus.png" alt="Thêm" class="nav-icon">
+                    <span>Thêm truyện</span>
+                </a>
             </div>
         </div>
     </nav>
 
-    <!-- Main Content -->
+    <!-- 2. Khu vực nội dung chính (Main Content) -->
     <main class="main-content">
-        <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 12px;">
-            <div>
-                <h1 class="page-title">Thư Viện Truyện</h1>
-                <p class="page-subtitle" id="comic-count">Đang tải danh sách...</p>
-            </div>
-            
-            <!-- Quick Search Control -->
-            <div style="display: flex; gap: 8px; align-items: center;">
-                <input type="text" id="quick-search" class="form-control" placeholder="Tìm tên truyện..." style="width: 260px;">
-            </div>
+        <!-- Tiêu đề trang và số lượng truyện hiện có -->
+        <div class="page-header" style="text-align: center;">
+            <h1 class="page-title" style="justify-content: center;">Thư Viện Truyện</h1>
+            <p class="page-subtitle" id="comic-count">Đang tải danh sách...</p>
         </div>
 
-        <!-- Comic Grid -->
+        <!-- Ô tìm kiếm nhanh chính giữa màn hình (Quick Search Bar) -->
+        <div class="search-box-centered">
+            <img src="data-icon/search.png" alt="Search" class="search-icon">
+            <input type="text" id="quick-search" class="search-input" placeholder="Tìm kiếm nhanh tên truyện trong thư viện...">
+        </div>
+
+        <!-- Lưới hiển thị danh sách thẻ truyện (Comic Cards Grid) -->
         <div id="comic-grid" class="comic-grid">
             <div style="grid-column: 1 / -1; text-align: center; padding: 60px 0; color: var(--text-dim);">
                 ⏳ Đang tải thư viện truyện...
@@ -41,19 +69,26 @@
         </div>
     </main>
 
+    <!-- Nạp file JavaScript tiện ích dùng chung -->
     <script src="app.js"></script>
     <script>
+        // Biến lưu từ khóa tìm kiếm và bộ đếm thời gian debounce
         let searchQuery = '';
         let debounceTimer;
 
+        /**
+         * Hàm tải danh sách truyện từ Backend API và hiển thị lên giao diện
+         */
         async function loadComics() {
             const grid = document.getElementById('comic-grid');
             const countEl = document.getElementById('comic-count');
             
             try {
+                // Gọi API lấy danh sách truyện kèm từ khóa tìm kiếm (nếu có)
                 const comics = await api.getComics({ q: searchQuery });
                 countEl.textContent = `${comics.length} bộ truyện trong thư viện`;
 
+                // Trường hợp thư viện chưa có truyện nào
                 if (comics.length === 0) {
                     grid.innerHTML = `
                         <div style="grid-column: 1 / -1; text-align: center; padding: 80px 20px;">
@@ -65,6 +100,7 @@
                     return;
                 }
 
+                // Render danh sách các thẻ truyện
                 grid.innerHTML = comics.map(comic => {
                     const coverUrl = api.getCoverUrl(comic.cover_filename);
                     const tagsHtml = (comic.tags || []).slice(0, 3).map(t => 
@@ -86,6 +122,7 @@
                 }).join('');
 
             } catch (err) {
+                // Hiển thị thông báo khi không thể kết nối tới backend
                 grid.innerHTML = `
                     <div style="grid-column: 1 / -1; text-align: center; padding: 60px 0; color: var(--danger);">
                         ❌ Không thể kết nối tới máy chủ backend. Vui lòng đảm bảo backend đang chạy tại port 8000!
@@ -94,7 +131,7 @@
             }
         }
 
-        // Search input
+        // Lắng nghe sự kiện gõ tìm kiếm nhanh với kỹ thuật debounce (300ms) tránh spam API
         document.getElementById('quick-search').addEventListener('input', (e) => {
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
@@ -103,7 +140,7 @@
             }, 300);
         });
 
-        // Initialize
+        // Khởi chạy tải danh sách truyện khi trang vừa nạp xong
         loadComics();
     </script>
 </body>

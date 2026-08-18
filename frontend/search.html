@@ -1,32 +1,65 @@
+<!--
+  HManga Library — Trang Tìm Kiếm & Lọc Nâng Cao (search.html)
+  ===========================================================
+  Nhiệm vụ:
+  - Cung cấp form tìm kiếm kết hợp nhiều tiêu chí: tên truyện, tác giả, thể loại/tags.
+  - Hiển thị kết quả tìm kiếm theo dạng lưới thẻ truyện (Grid Cards).
+  - Cho phép người dùng đặt lại bộ lọc tìm kiếm (Reset filter).
+-->
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tìm Kiếm — HManga Library</title>
+    <!-- Favicon website -->
+    <link rel="icon" type="image/jpeg" href="rem.jpg">
+    <!-- File stylesheet dùng chung -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Navbar -->
+    <!-- 1. Thanh điều hướng trên cùng (Navbar) -->
     <nav class="navbar">
         <div class="nav-container">
-            <a href="index.html" class="nav-brand">📚 HManga</a>
+            <!-- Logo thương hiệu -->
+            <a href="index.html" class="nav-brand">
+                <img src="rem.jpg" alt="HManga Logo" class="nav-logo">
+                <span>HManga</span>
+            </a>
+
+            <!-- Nút tìm kiếm trung tâm đang active -->
+            <div class="nav-center">
+                <a href="search.html" class="nav-link nav-search-pill active">
+                    <img src="data-icon/search.png" alt="Tìm kiếm" class="nav-icon">
+                    <span>Tìm kiếm</span>
+                </a>
+            </div>
+
+            <!-- Các nút điều hướng bên phải -->
             <div class="nav-links">
-                <a href="index.html" class="nav-link">Trang chủ</a>
-                <a href="search.html" class="nav-link active">🔍 Tìm kiếm</a>
-                <a href="add.html" class="btn-add">+ Thêm truyện</a>
+                <a href="index.html" class="nav-link">
+                    <img src="data-icon/home.png" alt="Trang chủ" class="nav-icon">
+                    <span>Trang chủ</span>
+                </a>
+                <a href="tags.html" class="nav-link">🏷️ Thể loại</a>
+                <a href="authors.html" class="nav-link">✍️ Tác giả</a>
+                <a href="add.html" class="btn-add">
+                    <img src="data-icon/plus.png" alt="Thêm" class="nav-icon">
+                    <span>Thêm truyện</span>
+                </a>
             </div>
         </div>
     </nav>
 
-    <!-- Main Content -->
+    <!-- 2. Khu vực nội dung chính (Main Content) -->
     <main class="main-content">
+        <!-- Tiêu đề trang tìm kiếm -->
         <div class="page-header">
             <h1 class="page-title">🔍 Tìm Kiếm & Lọc Truyện</h1>
             <p class="page-subtitle">Tìm kiếm kết hợp theo tên bộ truyện, tác giả và thể loại/tags</p>
         </div>
 
-        <!-- SEARCH FORM -->
+        <!-- FORM TÌM KIẾM NÂNG CAO -->
         <div class="card" style="margin-bottom: 24px;">
             <form id="search-form">
                 <div class="form-row">
@@ -52,16 +85,21 @@
             </form>
         </div>
 
-        <!-- RESULTS SECTION -->
+        <!-- KHU VỰC HIỂN THỊ KẾT QUẢ TÌM KIẾM -->
         <div id="results-header" style="margin-bottom: 16px; font-size: 15px; font-weight: 600; color: var(--text-muted); display: none;">
             Kết quả tìm kiếm (<span id="results-count" style="color: var(--primary);">0</span>)
         </div>
 
+        <!-- Lưới thẻ kết quả truyện -->
         <div id="results-grid" class="comic-grid"></div>
     </main>
 
+    <!-- Nạp file JavaScript tiện ích dùng chung -->
     <script src="app.js"></script>
     <script>
+        /**
+         * Hàm thực hiện tìm kiếm truyện dựa trên các trường nhập liệu trong form
+         */
         async function doSearch() {
             const q = document.getElementById('search-q').value.trim();
             const author = document.getElementById('search-author').value.trim();
@@ -74,10 +112,12 @@
             grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-dim);">⏳ Đang tìm kiếm...</div>';
 
             try {
+                // Gọi API tìm kiếm nâng cao với các tham số
                 const results = await api.searchComics({ q, author, tag });
                 resHeader.style.display = 'block';
                 countEl.textContent = results.length;
 
+                // Nếu không có kết quả nào khớp
                 if (results.length === 0) {
                     grid.innerHTML = `
                         <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--text-muted);">
@@ -88,6 +128,7 @@
                     return;
                 }
 
+                // Render danh sách các thẻ truyện tìm được
                 grid.innerHTML = results.map(comic => {
                     const coverUrl = api.getCoverUrl(comic.cover_filename);
                     const tagsHtml = (comic.tags || []).slice(0, 3).map(t => 
@@ -109,6 +150,7 @@
                 }).join('');
 
             } catch (err) {
+                // Hiển thị thông báo lỗi nếu có
                 grid.innerHTML = `
                     <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--danger);">
                         ❌ Lỗi tìm kiếm: ${err.message}
@@ -117,17 +159,19 @@
             }
         }
 
+        // Lắng nghe sự kiện Submit form tìm kiếm
         document.getElementById('search-form').addEventListener('submit', (e) => {
             e.preventDefault();
             doSearch();
         });
 
+        // Lắng nghe sự kiện click nút Reset bộ lọc
         document.getElementById('btn-reset-search').addEventListener('click', () => {
             document.getElementById('search-form').reset();
             doSearch();
         });
 
-        // Tự động tìm tất cả khi vừa vào trang
+        // Tự động tải tất cả truyện khi vừa mở trang
         doSearch();
     </script>
 </body>

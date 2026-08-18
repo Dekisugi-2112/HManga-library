@@ -6,7 +6,6 @@ class ComicBase(BaseModel):
     title: str
     author: Optional[str] = None
     source_url: Optional[str] = None
-    personal_note: Optional[str] = None
     tags: List[str] = []
 
 class ComicCreate(ComicBase):
@@ -16,7 +15,6 @@ class ComicUpdate(BaseModel):
     title: Optional[str] = None
     author: Optional[str] = None
     source_url: Optional[str] = None
-    personal_note: Optional[str] = None
     tags: Optional[List[str]] = None
 
 class ComicResponse(BaseModel):
@@ -24,7 +22,6 @@ class ComicResponse(BaseModel):
     title: str
     author: Optional[str] = None
     source_url: Optional[str] = None
-    personal_note: Optional[str] = None
     tags: List[str] = []
     cover_filename: Optional[str] = None
     created_at: datetime

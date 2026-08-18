@@ -1,5 +1,5 @@
 -- =========================================================================
--- HManga-library Database Schema (Simplified: Multi-only, No Status)
+-- HManga-library Database Schema (Simplified: Multi-only, No Status, No Notes)
 -- Chạy script này trên Supabase SQL Editor
 -- =========================================================================
 
@@ -9,15 +9,15 @@ CREATE TABLE IF NOT EXISTS public.comics (
     title VARCHAR(255) NOT NULL,
     author VARCHAR(255),
     cover_filename VARCHAR(100),
-    personal_note TEXT,
     source_url TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Nếu database đã có bảng comics từ trước, gỡ 2 cột type và status:
+-- Nếu database đã có bảng comics từ trước, gỡ các cột không dùng:
 ALTER TABLE public.comics DROP COLUMN IF EXISTS type;
 ALTER TABLE public.comics DROP COLUMN IF EXISTS status;
+ALTER TABLE public.comics DROP COLUMN IF EXISTS personal_note;
 
 -- 2. Bảng tags
 CREATE TABLE IF NOT EXISTS public.tags (
@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS public.chapters (
 
 -- Indexes tối ưu tìm kiếm
 CREATE INDEX IF NOT EXISTS idx_comics_title ON public.comics(title);
+CREATE INDEX IF NOT EXISTS idx_comics_author ON public.comics(author);
 CREATE INDEX IF NOT EXISTS idx_chapters_comic_id ON public.chapters(comic_id);
 CREATE INDEX IF NOT EXISTS idx_chapters_number ON public.chapters(comic_id, chapter_number);
 CREATE INDEX IF NOT EXISTS idx_tags_name ON public.tags(name);

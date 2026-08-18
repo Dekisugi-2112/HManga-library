@@ -1,12 +1,21 @@
 /**
  * HManga Library — Core Frontend JavaScript Utility
+ * =================================================
+ * File tiện ích dùng chung cho toàn bộ giao diện Frontend.
+ * Bao gồm:
+ * 1. Cấu hình địa chỉ backend API (API_BASE).
+ * 2. Hệ thống hiển thị thông báo Toast Notification (thành công, lỗi, cảnh báo).
+ * 3. Module `api` chứa toàn bộ các hàm gọi RESTful API tới Backend (Comics, Chapters, Tags, Authors).
+ * 4. Tiện ích phân tích cú pháp URL hentaifox (`parseHentaifoxUrl`, `generatePageUrls`, `extractGalleryId`).
+ * 5. Thành phần nhập thẻ tag trực quan (`TagInputComponent`).
  */
 
+// Tự động nhận diện URL Backend API dựa theo môi trường hiện tại
 const API_BASE = window.location.port === '8000' || window.location.port === '3000' 
     ? `${window.location.protocol}//${window.location.hostname}:8000` 
     : 'http://localhost:8000';
 
-// ==================== TOAST NOTIFICATION ====================
+// ==================== 1. TOAST NOTIFICATION ====================
 function showToast(message, type = 'info') {
     let container = document.getElementById('toast-container');
     if (!container) {
@@ -19,6 +28,7 @@ function showToast(message, type = 'info') {
     const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️';
     toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
     container.appendChild(toast);
+    
     setTimeout(() => {
         toast.style.opacity = '0';
         toast.style.transition = 'opacity 0.3s';
@@ -26,8 +36,9 @@ function showToast(message, type = 'info') {
     }, 3500);
 }
 
-// ==================== API CLIENT ====================
+// ==================== 2. API CLIENT ====================
 const api = {
+    // === COMICS ===
     async getComics(params = {}) {
         const query = new URLSearchParams();
         if (params.tag) query.set('tag', params.tag);
@@ -69,6 +80,7 @@ const api = {
         return res.json();
     },
 
+    // === CHAPTERS ===
     async createChapter(comicId, data) {
         const res = await fetch(`${API_BASE}/api/comics/${comicId}/chapters`, {
             method: 'POST',
@@ -101,6 +113,7 @@ const api = {
         return res.json();
     },
 
+    // === IMAGES ===
     async downloadCover(url, comicId) {
         const res = await fetch(`${API_BASE}/api/images/download-cover`, {
             method: 'POST',
@@ -111,6 +124,7 @@ const api = {
         return res.json();
     },
 
+    // === SEARCH ===
     async searchComics(params = {}) {
         const query = new URLSearchParams();
         if (params.q) query.set('q', params.q);
@@ -121,6 +135,7 @@ const api = {
         return res.json();
     },
 
+    // === CHECK EXISTING ===
     async checkComicByGalleryId(galleryId) {
         const res = await fetch(`${API_BASE}/api/comics/check/${galleryId}`);
         if (!res.ok) return { exists: false };
@@ -130,10 +145,72 @@ const api = {
     getCoverUrl(filename) {
         if (!filename) return 'rem.jpg';
         return `${API_BASE}/api/covers/${filename}`;
+    },
+
+    // === TAGS / GENRES MANAGEMENT ===
+    async getTags() {
+        const res = await fetch(`${API_BASE}/api/tags`);
+        if (!res.ok) throw new Error('Không thể tải danh sách thể loại');
+        return res.json();
+    },
+
+    async createTag(name) {
+        const res = await fetch(`${API_BASE}/api/tags`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name })
+        });
+        if (!res.ok) throw new Error('Lỗi khi thêm thể loại');
+        return res.json();
+    },
+
+    async updateTag(tagId, name) {
+        const res = await fetch(`${API_BASE}/api/tags/${tagId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name })
+        });
+        if (!res.ok) throw new Error('Lỗi khi cập nhật thể loại');
+        return res.json();
+    },
+
+    async deleteTag(tagId) {
+        const res = await fetch(`${API_BASE}/api/tags/${tagId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Lỗi khi xóa thể loại');
+        return res.json();
+    },
+
+    async getComicsByTag(tagId) {
+        const res = await fetch(`${API_BASE}/api/tags/${tagId}/comics`);
+        if (!res.ok) throw new Error('Không thể tải danh sách truyện theo thể loại');
+        return res.json();
+    },
+
+    // === AUTHORS MANAGEMENT ===
+    async getAuthors() {
+        const res = await fetch(`${API_BASE}/api/authors`);
+        if (!res.ok) throw new Error('Không thể tải danh sách tác giả');
+        return res.json();
+    },
+
+    async renameAuthor(oldName, newName) {
+        const res = await fetch(`${API_BASE}/api/authors/rename`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ old_name: oldName, new_name: newName })
+        });
+        if (!res.ok) throw new Error('Lỗi khi đổi tên tác giả');
+        return res.json();
+    },
+
+    async getComicsByAuthor(authorName) {
+        const res = await fetch(`${API_BASE}/api/authors/${encodeURIComponent(authorName)}/comics`);
+        if (!res.ok) throw new Error('Không thể tải truyện theo tác giả');
+        return res.json();
     }
 };
 
-// ==================== URL PARSER ====================
+// ==================== 3. URL PARSER ====================
 function parseHentaifoxUrl(url) {
     if (!url) return null;
     const match = url.trim().match(/^(.*\/)(\d+)([a-zA-Z]*)\.(\w+)(\?.*)?$/);
@@ -166,7 +243,7 @@ function extractGalleryId(url) {
     return parsed ? parsed.galleryId : null;
 }
 
-// ==================== TAG INPUT COMPONENT ====================
+// ==================== 4. TAG INPUT COMPONENT ====================
 class TagInputComponent {
     constructor(containerId, initialTags = []) {
         this.container = document.getElementById(containerId);
@@ -221,6 +298,14 @@ class TagInputComponent {
                 this.render();
             });
         });
+    }
+
+    addTag(tag) {
+        const cleanTag = tag.trim().toLowerCase();
+        if (cleanTag && !this.tags.includes(cleanTag)) {
+            this.tags.push(cleanTag);
+            this.render();
+        }
     }
 
     getTags() {

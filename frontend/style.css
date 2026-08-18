@@ -57,6 +57,32 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    position: relative;
+}
+
+.nav-center {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-search-pill {
+    padding: 6px 16px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    transition: all 0.2s ease;
+}
+
+.nav-search-pill:hover, .nav-search-pill.active {
+    background: rgba(99, 102, 241, 0.1);
+    border-color: var(--primary);
+    color: var(--text-main);
+    box-shadow: 0 0 12px var(--primary-glow);
 }
 
 .nav-brand {
@@ -74,6 +100,23 @@ body {
     color: #818cf8;
 }
 
+.nav-logo {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--primary);
+    box-shadow: 0 0 8px var(--primary-glow);
+    display: inline-block;
+    vertical-align: middle;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.nav-brand:hover .nav-logo {
+    transform: scale(1.08);
+    border-color: #818cf8;
+}
+
 .nav-links {
     display: flex;
     align-items: center;
@@ -85,11 +128,34 @@ body {
     text-decoration: none;
     font-size: 14px;
     font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     transition: color 0.2s;
 }
 
 .nav-link:hover, .nav-link.active {
     color: var(--text-main);
+}
+
+.nav-icon {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+    display: inline-block;
+    vertical-align: middle;
+    filter: brightness(0) invert(0.7);
+    transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+.nav-link:hover .nav-icon,
+.nav-link.active .nav-icon {
+    filter: brightness(0) invert(1);
+    transform: scale(1.1);
+}
+
+.btn-add .nav-icon {
+    filter: brightness(0) invert(1);
 }
 
 .btn-add {
@@ -135,6 +201,52 @@ body {
     font-size: 14px;
     color: var(--text-dim);
     margin-top: 4px;
+}
+
+/* ==================== CENTERED SEARCH BOX ==================== */
+.search-box-centered {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 20px auto 28px auto;
+    width: 100%;
+    max-width: 580px;
+    position: relative;
+}
+
+.search-box-centered .search-icon {
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    filter: brightness(0) invert(0.65);
+    pointer-events: none;
+    transition: filter 0.2s ease;
+}
+
+.search-box-centered:focus-within .search-icon {
+    filter: brightness(0) invert(1);
+}
+
+.search-box-centered .search-input {
+    width: 100%;
+    padding: 12px 20px 12px 48px;
+    border-radius: 28px;
+    font-size: 15px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.search-box-centered .search-input:focus {
+    border-color: var(--primary);
+    background: #131d36;
+    box-shadow: 0 0 0 3px var(--primary-glow), 0 4px 24px rgba(99, 102, 241, 0.2);
 }
 
 /* ==================== BUTTONS ==================== */

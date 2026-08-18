@@ -6,7 +6,7 @@
 - **Tên dự án**: HManga-library
 - **Mục đích**: Website cá nhân phục vụ việc lưu trữ, quản lý và đọc truyện tranh (manga/manhwa/manhua) được chọn lọc từ các nguồn bên ngoài (tối ưu cho `hentaifox.com`).
 - **Đối tượng sử dụng**: 1 người dùng duy nhất (không cần hệ thống xác thực / auth / đăng nhập).
-- **Mô hình kiến trúc**: **Modular Monolith** — Backend phân chia rõ theo từng domain module nhưng chạy trong một service FastAPI duy nhất; Frontend sử dụng HTML5 + CSS3 + Vanilla JavaScript thuần (Dark theme, siêu nhẹ, không cần Node.js, được serve trực tiếp bởi FastAPI).
+- **Mô hình kiến trúc**: **Modular Monolith** — Backend phân chia rõ theo từng domain module (`comics`, `chapters`, `images`, `search`, `tags`, `authors`) nhưng chạy trong một service FastAPI duy nhất; Frontend sử dụng HTML5 + CSS3 + Vanilla JavaScript thuần (Dark theme, siêu nhẹ, không cần Node.js, được serve trực tiếp bởi FastAPI).
 
 ---
 
@@ -60,20 +60,25 @@ HManga-library/
 │   │   ├── config.py              # Đọc biến môi trường (.env)
 │   │   └── database.py            # Singleton Supabase Client
 │   └── modules/
-│       ├── comics/                # Quản lý truyện (CRUD, Tags, Cache)
+│       ├── comics/                # Quản lý truyện (CRUD, Cache)
 │       ├── chapters/              # Quản lý chương & Render URL động
 │       ├── images/                # Download cover & Serve ảnh bìa
-│       └── search/                # Tìm kiếm và lọc nâng cao
+│       ├── search/                # Tìm kiếm và lọc nâng cao
+│       ├── tags/                  # Quản lý thể loại / tags
+│       └── authors/               # Quản lý tác giả
 │
 ├── frontend/
 │   ├── index.html                 # Trang chủ: Lưới truyện, tìm nhanh
-│   ├── add.html                   # Thêm truyện: URL Checker + Check trùng + Form
+│   ├── add.html                   # Thêm truyện: URL Checker + Gợi ý tag/tác giả
 │   ├── detail.html                # Chi tiết truyện: Sửa metadata, sửa/thêm/xóa chapter
+│   ├── tags.html                  # Quản lý thể loại: Thêm/Sửa/Xóa tag, xem truyện theo tag
+│   ├── authors.html               # Quản lý tác giả: Xem danh sách, đổi tên hàng loạt
 │   ├── reader.html                # Trình đọc truyện: 2 chế độ (cuộn dọc/từng trang), điều hướng
 │   ├── search.html                # Tìm kiếm theo tên, tác giả, tags
 │   ├── style.css                  # Giao diện Dark theme hiện đại, responsive
 │   ├── app.js                     # API Client, Tag Input, Toast Notification
-│   └── rem.jpg                    # Ảnh placeholder khi lỗi bìa
+│   ├── rem.jpg                    # Ảnh placeholder khi lỗi bìa
+│   └── data-icon/                 # Thư mục icon giao diện
 │
 ├── cover-images/                  # Thư mục lưu ảnh bìa theo gallery_id
 ├── check_url.html                 # Công cụ HTML kiểm thử URL độc lập
@@ -96,7 +101,6 @@ CREATE TABLE public.comics (
     title VARCHAR(255) NOT NULL,
     author VARCHAR(255),
     cover_filename VARCHAR(100),                     -- ví dụ: "4029076.jpg"
-    personal_note TEXT,                              -- ghi chú cá nhân
     source_url TEXT,                                 -- link tham khảo gốc
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -141,23 +145,38 @@ CREATE TABLE public.chapters (
   - Nút **"🧪 Test tải 3 trang đầu"** để kiểm tra link ảnh.
 - **Kiểm tra trùng lặp (`gallery_id`)**:
   - Tra cứu DB theo `gallery_id`. Nếu đã có, cho phép bấm **"Thêm chương mới vào bộ này"**.
-  - Nếu chưa có, điền tên truyện, tác giả, tags, ghi chú và lưu.
+- **Gợi ý tự động & Tinh gọn**:
+  - Gợi ý tác giả từ database.
+  - Hiển thị danh sách tag có sẵn để click chọn nhanh.
+  - Đã loại bỏ trường ghi chú cá nhân không cần thiết.
 - **Tự động tải Cover**: Tải ảnh trang 1 về `cover-images/{gallery_id}.jpg`.
 
-### 6.2. Trang chủ (`/index.html`)
+### 6.2. Quản lý Thể loại / Tags (`/tags.html`)
+- Thống kê danh sách thể loại kèm **số lượng truyện** tương ứng.
+- Thêm thể loại mới.
+- **✏️ Đổi tên thể loại**: Tự động đồng bộ trên toàn bộ truyện liên quan.
+- **🗑️ Xóa thể loại**: Gỡ liên kết tag an toàn khỏi database.
+- **Xem truyện theo thể loại**: Nhấp vào tag để lọc và xem danh sách truyện ngay bên dưới.
+
+### 6.3. Quản lý Tác giả (`/authors.html`)
+- Thống kê toàn bộ tác giả có trong thư viện và số lượng bộ truyện của họ.
+- **✏️ Đổi tên tác giả hàng loạt**: Cập nhật tên mới cho toàn bộ các truyện của tác giả đó.
+- Xem danh sách toàn bộ tác phẩm của từng tác giả.
+
+### 6.4. Trang chủ (`/index.html`)
 - Hiển thị toàn bộ truyện dạng lưới card Dark mode, sắp xếp theo ID thêm vào (1, 2, 3...).
 - Thẻ truyện hiển thị: Ảnh bìa, Tên truyện, Tác giả, và các Tag.
 - Thanh tìm kiếm nhanh theo tên truyện.
 
-### 6.3. Chi tiết truyện & Quản lý chương (`/detail.html`)
-- Xem metadata, ID thứ tự truyện, ảnh bìa, các tag thể loại và ghi chú cá nhân.
+### 6.5. Chi tiết truyện & Quản lý chương (`/detail.html`)
+- Xem metadata, ID thứ tự truyện, ảnh bìa, các tag thể loại.
 - Danh sách các chương sắp xếp theo thứ tự số chương tăng dần (`Ch.1`, `Ch.2`...).
-- **Modal Sửa thông tin truyện**: Sửa tên, tác giả, chỉnh sửa danh sách tag, cập nhật ghi chú.
+- **Modal Sửa thông tin truyện**: Sửa tên, tác giả (có gợi ý), chỉnh sửa danh sách tag (có gợi ý).
 - **Modal Sửa chương**: Đổi số chương (ví dụ chuyển chương 1 thành 2, 1.5...) và đổi tên chương.
 - **Modal Thêm chương mới**: Tích hợp `UrlChecker` để thêm chương trực tiếp cho bộ truyện này.
 - **Xóa chương & Xóa truyện**: Có xác nhận an toàn; khi xóa truyện sẽ tự động xóa file cover local.
 
-### 6.4. Trình đọc truyện chuyên dụng (`/reader.html`)
+### 6.6. Trình đọc truyện chuyên dụng (`/reader.html`)
 - **2 chế độ đọc linh hoạt**:
   - **📜 Cuộn dọc (Webtoon style)**: Tải toàn bộ ảnh theo chiều dọc, hỗ trợ lazy-load.
   - **📄 Theo từng trang (Manga style)**: Hiển thị 1 ảnh giữa màn hình, có nút Trang trước / Trang sau, hỗ trợ phím mũi tên bàn phím (`←` / `→`).
@@ -167,18 +186,9 @@ CREATE TABLE public.chapters (
   - Nút quay lại trang thông tin chi tiết của bộ truyện.
 - Hiển thị tên truyện, số chương, tổng số trang trên header cố định.
 
-### 6.5. Tìm kiếm & Lọc (`/search.html`)
+### 6.7. Tìm kiếm & Lọc (`/search.html`)
 - Tìm kiếm đồng thời theo: Tên truyện, Tác giả, Tag/Thể loại (từ khóa tự do).
 - Trả về kết quả dưới dạng lưới thẻ truyện trực quan.
-
-### 6.6. Tag Input thông minh
-- Cho phép nhập bất kỳ từ khóa tag nào, nhấn `Enter` hoặc dấu `,` để tạo tag dạng chip/badge.
-- Hỗ trợ xóa tag bằng nút `×` hoặc phím `Backspace`.
-
-### 6.7. Đóng gói & Chuẩn bị Git
-- Tạo `.gitignore` chuẩn bảo vệ mã nguồn, loại bỏ `node_modules`, `__pycache__`, `cover-images/`, file `.env`.
-- Cung cấp `.env.example` để dễ dàng clone và triển khai.
-- Cấu hình ảnh giữ chỗ mặc định `rem.jpg`.
 
 ---
 

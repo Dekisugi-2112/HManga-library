@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Tác Giả — HManga Library</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .author-manage-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .author-item-card {
+            background: #090d16;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .author-item-card:hover {
+            border-color: rgba(99, 102, 241, 0.4);
+            transform: translateY(-2px);
+        }
+        .author-item-card.active {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+        .author-name-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #c7d2fe;
+            font-size: 14px;
+        }
+        .author-count-badge {
+            background: rgba(99, 102, 241, 0.2);
+            color: #818cf8;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-brand">📚 HManga</a>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">Trang chủ</a>
+                <a href="tags.html" class="nav-link">🏷️ Thể loại</a>
+                <a href="authors.html" class="nav-link active">✍️ Tác giả</a>
+                <a href="search.html" class="nav-link">🔍 Tìm kiếm</a>
+                <a href="add.html" class="btn-add">+ Thêm truyện</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">✍️ Quản Lý Tác Giả</h1>
+            <p class="page-subtitle">Xem danh sách các tác giả trong thư viện, đổi tên hàng loạt hoặc xem các tác phẩm</p>
+        </div>
+
+        <!-- Authors List Section -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2 style="font-size: 16px; font-weight: 700; color: var(--text-main);" id="authors-count-heading">Danh Sách Tác Giả</h2>
+                <span style="font-size: 12px; color: var(--text-dim);">(Bấm vào tác giả để xem các tác phẩm)</span>
+            </div>
+            <div id="authors-list" class="author-manage-grid">
+                <div style="grid-column: 1 / -1; text-align: center; padding: 30px 0; color: var(--text-dim);">⏳ Đang tải danh sách tác giả...</div>
+            </div>
+        </div>
+
+        <!-- Comics by Selected Author Section -->
+        <div id="author-comics-section" style="display: none; margin-top: 30px;">
+            <div class="page-header" style="border-top: 1px solid var(--border-color); padding-top: 24px;">
+                <h2 class="page-title" style="font-size: 20px;">
+                    📚 Tác phẩm của: <span id="selected-author-title" style="color: var(--primary);">---</span>
+                </h2>
+                <p class="page-subtitle" id="selected-author-count">0 bộ truyện</p>
+            </div>
+            <div id="author-comics-grid" class="comic-grid"></div>
+        </div>
+    </main>
+
+    <!-- Modal: Rename Author -->
+    <div id="modal-rename-author" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title">✏️ Đổi Tên Tác Giả Hàng Loạt</h3>
+                <button type="button" class="modal-close" onclick="closeRenameModal()">&times;</button>
+            </div>
+            <form id="form-rename-author">
+                <input type="hidden" id="rename-author-old">
+                <div class="form-group">
+                    <label class="form-label">Tên tác giả hiện tại:</label>
+                    <input type="text" id="rename-author-display" class="form-control" disabled style="opacity: 0.7;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Tên tác giả mới (áp dụng cho tất cả truyện của tác giả này):</label>
+                    <input type="text" id="rename-author-new" class="form-control" placeholder="Nhập tên mới..." required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeRenameModal()">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        let allAuthors = [];
+        let selectedAuthorName = null;
+
+        async function loadAuthors() {
+            const listEl = document.getElementById('authors-list');
+            try {
+                allAuthors = await api.getAuthors();
+                document.getElementById('authors-count-heading').textContent = `Danh Sách Tác Giả (${allAuthors.length})`;
+
+                if (allAuthors.length === 0) {
+                    listEl.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 30px 0; color: var(--text-dim);">Chưa có tác giả nào trong thư viện.</div>';
+                    return;
+                }
+
+                listEl.innerHTML = allAuthors.map(item => `
+                    <div class="author-item-card ${selectedAuthorName === item.name ? 'active' : ''}" onclick="selectAuthor('${item.name}')">
+                        <div class="author-name-box">
+                            <span>✍️ ${item.name}</span>
+                            <span class="author-count-badge">${item.comic_count} truyện</span>
+                        </div>
+                        <div onclick="event.stopPropagation();">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="openRenameModal('${item.name}')" title="Đổi tên tác giả">✏️ Sửa</button>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (err) {
+                listEl.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 30px 0; color: var(--danger);">❌ Lỗi tải tác giả: ${err.message}</div>`;
+            }
+        }
+
+        async function selectAuthor(authorName) {
+            selectedAuthorName = authorName;
+            document.querySelectorAll('.author-item-card').forEach(el => el.classList.remove('active'));
+            event?.currentTarget?.classList.add('active');
+
+            const section = document.getElementById('author-comics-section');
+            const grid = document.getElementById('author-comics-grid');
+            const title = document.getElementById('selected-author-title');
+            const count = document.getElementById('selected-author-count');
+
+            title.textContent = authorName;
+            grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-dim);">⏳ Đang tải truyện...</div>';
+            section.style.display = 'block';
+            section.scrollIntoView({ behavior: 'smooth' });
+
+            try {
+                const comics = await api.getComicsByAuthor(authorName);
+                count.textContent = `${comics.length} bộ truyện`;
+
+                if (comics.length === 0) {
+                    grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">Chưa có bộ truyện nào của tác giả này.</div>';
+                    return;
+                }
+
+                grid.innerHTML = comics.map(comic => {
+                    const coverUrl = api.getCoverUrl(comic.cover_filename);
+                    const tagsHtml = (comic.tags || []).slice(0, 3).map(t => `<span class="tag-chip">${t}</span>`).join('');
+                    return `
+                        <a href="detail.html?id=${comic.id}" class="comic-card">
+                            <div class="card-thumb-wrapper">
+                                <img src="${coverUrl}" alt="${comic.title}" class="card-thumb" referrerpolicy="no-referrer" onerror="this.src='rem.jpg'">
+                            </div>
+                            <div class="card-body">
+                                <div class="card-title" title="${comic.title}">${comic.title}</div>
+                                <div class="card-author">${comic.author || 'Tác giả chưa rõ'}</div>
+                                <div class="card-tags">${tagsHtml}</div>
+                            </div>
+                        </a>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--danger);">❌ Lỗi: ${err.message}</div>`;
+            }
+        }
+
+        // Rename Author Modal
+        function openRenameModal(name) {
+            document.getElementById('rename-author-old').value = name;
+            document.getElementById('rename-author-display').value = name;
+            document.getElementById('rename-author-new').value = name;
+            document.getElementById('modal-rename-author').classList.add('active');
+        }
+
+        function closeRenameModal() {
+            document.getElementById('modal-rename-author').classList.remove('active');
+        }
+
+        document.getElementById('form-rename-author').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const oldName = document.getElementById('rename-author-old').value.trim();
+            const newName = document.getElementById('rename-author-new').value.trim();
+            if (!newName || newName === oldName) {
+                closeRenameModal();
+                return;
+            }
+
+            try {
+                const res = await api.renameAuthor(oldName, newName);
+                showToast(`Đã đổi tên tác giả cho ${res.updated_count} bộ truyện!`, 'success');
+                closeRenameModal();
+                loadAuthors();
+                if (selectedAuthorName === oldName) {
+                    selectAuthor(newName);
+                }
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        });
+
+        // Initialize
+        loadAuthors();
+    </script>
+</body>
+</html>

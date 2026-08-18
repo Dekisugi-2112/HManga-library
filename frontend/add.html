@@ -5,6 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Thêm Truyện Mới — HManga Library</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        .quick-tag-chip {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        .quick-tag-chip:hover {
+            background: rgba(99, 102, 241, 0.2);
+            color: #c7d2fe;
+            border-color: var(--primary);
+        }
+    </style>
 </head>
 <body>
     <!-- Navbar -->
@@ -13,8 +31,10 @@
             <a href="index.html" class="nav-brand">📚 HManga</a>
             <div class="nav-links">
                 <a href="index.html" class="nav-link">Trang chủ</a>
+                <a href="tags.html" class="nav-link">🏷️ Thể loại</a>
+                <a href="authors.html" class="nav-link">✍️ Tác giả</a>
                 <a href="search.html" class="nav-link">🔍 Tìm kiếm</a>
-                <a href="add.html" class="btn-add">+ Thêm truyện</a>
+                <a href="add.html" class="btn-add active">+ Thêm truyện</a>
             </div>
         </div>
     </nav>
@@ -94,17 +114,19 @@
 
                 <div class="form-group">
                     <label class="form-label">Tên tác giả</label>
-                    <input type="text" id="comic-author" class="form-control" placeholder="Nhập tên tác giả (nếu có)...">
+                    <input type="text" id="comic-author" list="authors-datalist" class="form-control" placeholder="Nhập hoặc chọn tên tác giả...">
+                    <datalist id="authors-datalist"></datalist>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label">Thể loại / Tags (Nhập tag rồi ấn Enter hoặc dấu phẩy):</label>
                     <div id="tag-input-box"></div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Ghi chú cá nhân</label>
-                    <textarea id="comic-note" class="form-control" rows="2" placeholder="Ghi chú, đánh giá riêng của bạn..." style="resize: vertical;"></textarea>
+                    
+                    <!-- Quick Tag Selection Chips -->
+                    <div id="quick-tags-box" style="margin-top: 10px; display: none;">
+                        <span style="font-size: 12px; color: var(--text-dim); margin-right: 6px;">Gợi ý thể loại có sẵn:</span>
+                        <div id="quick-tags-container" style="display: inline-flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;"></div>
+                    </div>
                 </div>
             </div>
 
@@ -139,10 +161,39 @@
         let generatedUrls = [];
         let existingComicData = null;
 
-        // Initialize Tag Input
-        document.addEventListener('DOMContentLoaded', () => {
+        // Initialize Tag Input & Autocomplete suggestions
+        document.addEventListener('DOMContentLoaded', async () => {
             tagInput = new TagInputComponent('tag-input-box');
+
+            // Load authors for datalist
+            try {
+                const authors = await api.getAuthors();
+                const datalist = document.getElementById('authors-datalist');
+                datalist.innerHTML = authors.map(a => `<option value="${a.name}">`).join('');
+            } catch (err) {
+                console.warn('Lỗi nạp gợi ý tác giả:', err);
+            }
+
+            // Load existing tags for quick selection
+            try {
+                const tags = await api.getTags();
+                if (tags.length > 0) {
+                    const quickContainer = document.getElementById('quick-tags-container');
+                    quickContainer.innerHTML = tags.map(t => `
+                        <span class="quick-tag-chip" onclick="addQuickTag('${t.name}')">+ ${t.name}</span>
+                    `).join('');
+                    document.getElementById('quick-tags-box').style.display = 'block';
+                }
+            } catch (err) {
+                console.warn('Lỗi nạp gợi ý thể loại:', err);
+            }
         });
+
+        function addQuickTag(tagName) {
+            if (tagInput) {
+                tagInput.addTag(tagName);
+            }
+        }
 
         // Analyze URL
         async function analyzeUrl() {
@@ -267,7 +318,6 @@
             const title = document.getElementById('comic-title').value.trim();
             const author = document.getElementById('comic-author').value.trim();
             const tags = tagInput.getTags();
-            const personalNote = document.getElementById('comic-note').value.trim();
 
             const baseUrl = document.getElementById('input-url').value.trim();
             const totalPages = parseInt(document.getElementById('input-total-pages').value, 10);
@@ -293,8 +343,7 @@
                     title,
                     author: author || undefined,
                     tags,
-                    source_url: baseUrl,
-                    personal_note: personalNote || undefined
+                    source_url: baseUrl
                 });
 
                 // 2. Tạo Chapter

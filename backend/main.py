@@ -1,16 +1,34 @@
+"""
+HManga Library - Backend Entrypoint (FastAPI)
+==============================================
+Tập tin khởi chạy chính của ứng dụng backend FastAPI.
+Nhiệm vụ:
+- Khởi tạo FastAPI application và cấu hình CORS middleware.
+- Đăng ký các router RESTful API cho Comics, Chapters, Images, Search, Tags, Authors.
+- Cung cấp (Mount) thư mục ảnh bìa (cover images) và toàn bộ giao diện tĩnh Frontend.
+"""
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
+# Import các router từ các module chức năng
 from modules.comics.router import router as comics_router
 from modules.chapters.router import router as chapters_router
 from modules.images.router import router as images_router
 from modules.search.router import router as search_router
+from modules.tags.router import router as tags_router
+from modules.authors.router import router as authors_router
 
-app = FastAPI(title="HManga Library API")
+# Khởi tạo ứng dụng FastAPI
+app = FastAPI(
+    title="HManga Library API",
+    description="API quản lý và đọc thư viện truyện cá nhân HManga",
+    version="1.0.0"
+)
 
-# Cấu hình CORS
+# Cấu hình CORS Middleware cho phép gọi API từ nhiều nguồn (phù hợp khi chạy dev / local)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,21 +37,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Thư mục chứa cover images và frontend
+# Đường dẫn thư mục lưu trữ ảnh bìa cục bộ (cover-images)
 COVER_DIR = Path(__file__).parent.parent / "cover-images"
 COVER_DIR.mkdir(parents=True, exist_ok=True)
 
+# Đường dẫn thư mục giao diện tĩnh Frontend (HTML, CSS, JS, icon)
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 FRONTEND_DIR.mkdir(parents=True, exist_ok=True)
 
-# 1. Đăng ký API routes
-app.include_router(comics_router)
-app.include_router(chapters_router)
-app.include_router(images_router)
-app.include_router(search_router)
+# 1. Đăng ký các API Routers
+app.include_router(comics_router)      # API quản lý truyện (danh sách, chi tiết, thêm, xóa)
+app.include_router(chapters_router)    # API quản lý chapter truyện
+app.include_router(images_router)      # API giải mã URL ảnh & proxy ảnh tránh chặn referrer
+app.include_router(search_router)      # API tìm kiếm nâng cao theo tên, tác giả, tag
+app.include_router(tags_router)        # API quản lý thể loại / tags
+app.include_router(authors_router)     # API quản lý tác giả
 
-# 2. Mount thư mục static cho cover images
+# 2. Mount thư mục tĩnh phục vụ xem ảnh bìa cục bộ (/api/covers/{filename})
 app.mount("/api/covers", StaticFiles(directory=str(COVER_DIR)), name="covers")
 
-# 3. Mount thư mục static cho Frontend (HTML, CSS, JS)
+# 3. Mount thư mục tĩnh cho toàn bộ giao diện Frontend (/ -> index.html, style.css, ...)
 app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
