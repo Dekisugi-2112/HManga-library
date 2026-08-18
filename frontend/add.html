@@ -112,8 +112,7 @@
 
                 <div class="form-group">
                     <label class="form-label">Tên tác giả</label>
-                    <input type="text" id="comic-author" list="authors-datalist" class="form-control" placeholder="Nhập hoặc chọn tên tác giả...">
-                    <datalist id="authors-datalist"></datalist>
+                    <input type="text" id="comic-author" class="form-control" placeholder="Gõ để tìm tác giả có sẵn hoặc tạo tác giả mới..." autocomplete="off">
                 </div>
 
                 <!-- CHỌN THỂ LOẠI (CHỈ CHỌN, KHÔNG GÕ CHỮ) -->
@@ -153,13 +152,15 @@
     <script src="app.js"></script>
     <script>
         let genreSelector;
+        let authorAutocomplete;
         let currentParsed = null;
         let generatedUrls = [];
         let existingComicData = null;
 
-        // Initialize Genre Selector & Autocomplete suggestions
+        // Initialize Genre Selector & Author Autocomplete
         document.addEventListener('DOMContentLoaded', async () => {
             genreSelector = new GenreSelectorComponent('genre-selector-box');
+            authorAutocomplete = new AuthorAutocompleteComponent('comic-author');
 
             // Load all available genres from database
             try {
@@ -169,11 +170,10 @@
                 console.warn('Lỗi nạp thể loại:', err);
             }
 
-            // Load authors for datalist
+            // Load authors for smart autocomplete
             try {
                 const authors = await api.getAuthors();
-                const datalist = document.getElementById('authors-datalist');
-                datalist.innerHTML = authors.map(a => `<option value="${a.name}">`).join('');
+                authorAutocomplete.setAuthors(authors);
             } catch (err) {
                 console.warn('Lỗi nạp gợi ý tác giả:', err);
             }

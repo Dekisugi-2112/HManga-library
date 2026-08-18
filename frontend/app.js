@@ -316,3 +316,155 @@ class GenreSelectorComponent {
         });
     }
 }
+
+// ==================== 5. AUTHOR AUTOCOMPLETE COMPONENT ====================
+/**
+ * Component gợi ý tác giả thông minh:
+ * - Khi người dùng gõ tên: tìm kiếm tức thì trong danh sách tác giả đã có.
+ * - Nếu có tác giả phù hợp: hiển thị danh sách để click chọn.
+ * - Nếu là tác giả mới: hiển thị gợi ý "➕ Dùng tác giả mới" và tự động tạo mới khi lưu.
+ */
+class AuthorAutocompleteComponent {
+    constructor(inputId, authors = []) {
+        this.input = document.getElementById(inputId);
+        this.authors = [...authors];
+        this.selectedIndex = -1;
+        this.init();
+    }
+
+    setAuthors(authors) {
+        this.authors = [...authors];
+    }
+
+    init() {
+        if (!this.input) return;
+
+        // Bọc ô input vào wrapper nếu chưa bọc
+        let wrapper = this.input.parentElement;
+        if (!wrapper.classList.contains('autocomplete-wrapper')) {
+            wrapper = document.createElement('div');
+            wrapper.className = 'autocomplete-wrapper';
+            this.input.parentNode.insertBefore(wrapper, this.input);
+            wrapper.appendChild(this.input);
+        }
+
+        // Tạo dropdown menu gợi ý
+        this.dropdown = document.createElement('div');
+        this.dropdown.className = 'autocomplete-dropdown';
+        wrapper.appendChild(this.dropdown);
+
+        // Sự kiện gõ phím & focus
+        this.input.addEventListener('input', () => this.onInput());
+        this.input.addEventListener('focus', () => this.onInput());
+
+        // Hỗ trợ điều hướng bằng phím mũi tên / Enter / Esc
+        this.input.addEventListener('keydown', (e) => {
+            const items = this.dropdown.querySelectorAll('.autocomplete-item');
+            if (!this.dropdown.classList.contains('active') || items.length === 0) return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                this.selectedIndex = (this.selectedIndex + 1) % items.length;
+                this.updateFocus(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                this.selectedIndex = (this.selectedIndex - 1 + items.length) % items.length;
+                this.updateFocus(items);
+            } else if (e.key === 'Enter') {
+                if (this.selectedIndex >= 0 && this.selectedIndex < items.length) {
+                    e.preventDefault();
+                    items[this.selectedIndex].click();
+                }
+            } else if (e.key === 'Escape') {
+                this.hide();
+            }
+        });
+
+        // Đóng dropdown khi bấm ra ngoài
+        document.addEventListener('click', (e) => {
+            if (!wrapper.contains(e.target)) {
+                this.hide();
+            }
+        });
+    }
+
+    onInput() {
+        const query = this.input.value.trim().toLowerCase();
+        this.renderDropdown(query);
+    }
+
+    updateFocus(items) {
+        items.forEach((item, i) => {
+            if (i === this.selectedIndex) {
+                item.classList.add('focused');
+                item.scrollIntoView({ block: 'nearest' });
+            } else {
+                item.classList.remove('focused');
+            }
+        });
+    }
+
+    selectAuthor(name) {
+        this.input.value = name;
+        this.hide();
+        this.input.dispatchEvent(new Event('change'));
+    }
+
+    hide() {
+        this.dropdown.classList.remove('active');
+        this.selectedIndex = -1;
+    }
+
+    renderDropdown(query) {
+        const rawVal = this.input.value.trim();
+        const matches = this.authors.filter(a => {
+            const name = (typeof a === 'string' ? a : a.name).toLowerCase();
+            return !query || name.includes(query);
+        });
+
+        const exactMatch = this.authors.some(a => {
+            const name = typeof a === 'string' ? a : a.name;
+            return name.toLowerCase() === query;
+        });
+
+        let html = '';
+
+        // Nếu đã gõ chữ và chưa trùng khớp 100% với tác giả cũ -> hiện nút thêm mới
+        if (rawVal && !exactMatch) {
+            html += `
+                <div class="autocomplete-item autocomplete-item-new" data-val="${rawVal}">
+                    <span>➕ Dùng tác giả mới: <b>"${rawVal}"</b></span>
+                    <span class="autocomplete-badge">Mới</span>
+                </div>
+            `;
+        }
+
+        // Liệt kê các tác giả đã có khớp với từ khóa
+        matches.forEach(item => {
+            const name = typeof item === 'string' ? item : item.name;
+            const count = typeof item === 'object' && item.comic_count !== undefined ? `${item.comic_count} truyện` : '';
+            html += `
+                <div class="autocomplete-item" data-val="${name}">
+                    <span>✍️ ${name}</span>
+                    ${count ? `<span class="autocomplete-badge">${count}</span>` : ''}
+                </div>
+            `;
+        });
+
+        if (!html) {
+            this.hide();
+            return;
+        }
+
+        this.dropdown.innerHTML = html;
+        this.dropdown.classList.add('active');
+        this.selectedIndex = -1;
+
+        this.dropdown.querySelectorAll('.autocomplete-item').forEach(el => {
+            el.addEventListener('click', () => {
+                const val = el.getAttribute('data-val');
+                this.selectAuthor(val);
+            });
+        });
+    }
+}

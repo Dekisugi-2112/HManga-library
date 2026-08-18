@@ -121,8 +121,7 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Tác giả</label>
-                    <input type="text" id="edit-comic-author" list="edit-authors-datalist" class="form-control" placeholder="Nhập hoặc chọn tên tác giả...">
-                    <datalist id="edit-authors-datalist"></datalist>
+                    <input type="text" id="edit-comic-author" class="form-control" placeholder="Gõ để tìm tác giả có sẵn hoặc tạo tác giả mới..." autocomplete="off">
                 </div>
                 <div class="form-group">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
@@ -207,6 +206,7 @@
         const comicId = parseInt(urlParams.get('id'), 10);
         let currentComic = null;
         let editGenreSelector = null;
+        let editAuthorAutocomplete = null;
 
         function closeModal(id) {
             document.getElementById(id).classList.remove('active');
@@ -307,11 +307,13 @@
                 editGenreSelector.setSelectedGenres(currentComic.genres || []);
             } catch {}
 
-            // Load author suggestions
+            // Load author autocomplete
+            if (!editAuthorAutocomplete) {
+                editAuthorAutocomplete = new AuthorAutocompleteComponent('edit-comic-author');
+            }
             try {
                 const authors = await api.getAuthors();
-                const datalist = document.getElementById('edit-authors-datalist');
-                datalist.innerHTML = authors.map(a => `<option value="${a.name}">`).join('');
+                editAuthorAutocomplete.setAuthors(authors);
             } catch {}
 
             openModal('modal-edit-comic');
