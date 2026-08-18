@@ -61,10 +61,11 @@ Truy cập: **http://localhost:8000** (hoặc `http://127.0.0.1:8000`)
 3. Hệ thống sẽ tự động bóc tách `gallery_id` và kiểm tra xem truyện đã tồn tại chưa:
    - Nếu **đã có trong thư viện**: Cho phép thêm ngay chương mới vào bộ truyện đó.
    - Nếu **chưa có**: Nhập số trang $\rightarrow$ Bấm **"Cập nhật danh sách trang"** $\rightarrow$ Có thể bấm **"Test tải 3 trang đầu"** để kiểm tra.
-4. Điền tên truyện, chọn/nhập tác giả (có gợi ý tự động), chọn/nhập thể loại (có gợi ý click chọn nhanh).
-5. Bấm **"Lưu & Thêm Truyện Vào Thư Viện"**. Ảnh bìa sẽ tự động tải về `cover-images/{gallery_id}.jpg`.
+4. Điền tên truyện, chọn/nhập tác giả (có gợi ý tự động).
+5. **Chọn thể loại**: Bấm chọn trực tiếp các thể loại từ danh sách có sẵn (không cần gõ tay).
+6. Bấm **"Lưu & Thêm Truyện Vào Thư Viện"**. Ảnh bìa sẽ tự động tải về `cover-images/{gallery_id}.jpg`.
 
-### 2. Quản lý Thể loại / Tags (`/tags.html`)
+### 2. Quản lý Thể loại (`/genres.html`)
 - Xem danh sách tất cả các thể loại kèm **số lượng bộ truyện** của từng thể loại.
 - **Thêm thể loại mới** nhanh chóng.
 - **✏️ Đổi tên thể loại**: Cập nhật tên thể loại trên toàn hệ thống.
@@ -83,13 +84,13 @@ Truy cập: **http://localhost:8000** (hoặc `http://127.0.0.1:8000`)
 - Nút **⇦ Chương trước** và **Chương sau ⇨** ở chân trang giúp chuyển chương liền mạch.
 
 ### 5. Quản lý truyện & chương (Trang chi tiết `/detail.html`)
-- **Sửa thông tin truyện**: Đổi tên, tác giả, chỉnh sửa danh sách tags.
+- **Sửa thông tin truyện**: Đổi tên, tác giả, chọn lại danh sách thể loại (click chọn thể loại).
 - **Sửa chương**: Thay đổi số thứ tự chương (VD: chuyển chương 1 thành 2) và đổi tên chương.
 - **Thêm chương mới**: Thêm chương trực tiếp từ trang chi tiết.
 - **Xóa truyện**: Xóa toàn bộ dữ liệu trong DB và tự dọn dẹp file ảnh bìa local.
 
 ### 6. Tìm kiếm & Lọc (`/search.html`)
-- Tìm kiếm kết hợp theo: Tên truyện, Tác giả, Thể loại/Tags.
+- Tìm kiếm kết hợp theo: Tên truyện, Tác giả, Thể loại (dropdown chọn thể loại).
 
 ---
 
@@ -109,8 +110,8 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
 Schema SQL nằm trong file `database_schema.sql` gồm:
 - `comics`: Thông tin bộ truyện (tên, tác giả, cover)
-- `tags`: Danh sách thể loại
-- `comic_tags`: Bảng liên kết n-n giữa truyện và tag
+- `genres`: Danh sách thể loại
+- `comic_genres`: Bảng liên kết n-n giữa truyện và thể loại
 - `chapters`: Các chương truyện (`base_url` + `total_pages`)
 
 ---

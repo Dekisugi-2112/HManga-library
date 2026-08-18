@@ -4,7 +4,7 @@
   Nhiệm vụ:
   - Hiển thị danh sách tất cả các bộ truyện đã lưu trong thư viện dưới dạng lưới thẻ (Grid Cards).
   - Thanh tìm kiếm nhanh thời gian thực (live search with debounce).
-  - Thanh điều hướng (Navbar) với logo thương hiệu, nút tìm kiếm trung tâm và nút thêm truyện.
+  - Thanh điều hướng (Navbar) với logo thương hiệu, nút tìm kiếm trung tâm và các mục điều hướng.
 -->
 <!DOCTYPE html>
 <html lang="vi">
@@ -37,7 +37,7 @@
 
             <!-- Các nút hành động bên phải Navbar -->
             <div class="nav-links">
-                <a href="tags.html" class="nav-link">🏷️ Thể loại</a>
+                <a href="genres.html" class="nav-link">🏷️ Thể loại</a>
                 <a href="authors.html" class="nav-link">✍️ Tác giả</a>
                 <a href="add.html" class="btn-add">
                     <img src="data-icon/plus.png" alt="Thêm" class="nav-icon">
@@ -72,23 +72,17 @@
     <!-- Nạp file JavaScript tiện ích dùng chung -->
     <script src="app.js"></script>
     <script>
-        // Biến lưu từ khóa tìm kiếm và bộ đếm thời gian debounce
         let searchQuery = '';
         let debounceTimer;
 
-        /**
-         * Hàm tải danh sách truyện từ Backend API và hiển thị lên giao diện
-         */
         async function loadComics() {
             const grid = document.getElementById('comic-grid');
             const countEl = document.getElementById('comic-count');
             
             try {
-                // Gọi API lấy danh sách truyện kèm từ khóa tìm kiếm (nếu có)
                 const comics = await api.getComics({ q: searchQuery });
                 countEl.textContent = `${comics.length} bộ truyện trong thư viện`;
 
-                // Trường hợp thư viện chưa có truyện nào
                 if (comics.length === 0) {
                     grid.innerHTML = `
                         <div style="grid-column: 1 / -1; text-align: center; padding: 80px 20px;">
@@ -100,12 +94,11 @@
                     return;
                 }
 
-                // Render danh sách các thẻ truyện
                 grid.innerHTML = comics.map(comic => {
                     const coverUrl = api.getCoverUrl(comic.cover_filename);
-                    const tagsHtml = (comic.tags || []).slice(0, 3).map(t => 
-                        `<span class="tag-chip">${t}</span>`
-                    ).join('') + ((comic.tags && comic.tags.length > 3) ? `<span class="tag-chip">+${comic.tags.length - 3}</span>` : '');
+                    const genresHtml = (comic.genres || []).slice(0, 3).map(g => 
+                        `<span class="tag-chip">${g}</span>`
+                    ).join('') + ((comic.genres && comic.genres.length > 3) ? `<span class="tag-chip">+${comic.genres.length - 3}</span>` : '');
 
                     return `
                         <a href="detail.html?id=${comic.id}" class="comic-card">
@@ -115,14 +108,13 @@
                             <div class="card-body">
                                 <div class="card-title" title="${comic.title}">${comic.title}</div>
                                 <div class="card-author">${comic.author || 'Tác giả chưa rõ'}</div>
-                                <div class="card-tags">${tagsHtml}</div>
+                                <div class="card-tags">${genresHtml}</div>
                             </div>
                         </a>
                     `;
                 }).join('');
 
             } catch (err) {
-                // Hiển thị thông báo khi không thể kết nối tới backend
                 grid.innerHTML = `
                     <div style="grid-column: 1 / -1; text-align: center; padding: 60px 0; color: var(--danger);">
                         ❌ Không thể kết nối tới máy chủ backend. Vui lòng đảm bảo backend đang chạy tại port 8000!
@@ -131,7 +123,6 @@
             }
         }
 
-        // Lắng nghe sự kiện gõ tìm kiếm nhanh với kỹ thuật debounce (300ms) tránh spam API
         document.getElementById('quick-search').addEventListener('input', (e) => {
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
@@ -140,7 +131,6 @@
             }, 300);
         });
 
-        // Khởi chạy tải danh sách truyện khi trang vừa nạp xong
         loadComics();
     </script>
 </body>

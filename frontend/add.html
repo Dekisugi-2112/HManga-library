@@ -4,37 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Thêm Truyện Mới — HManga Library</title>
+    <!-- Favicon website -->
+    <link rel="icon" type="image/jpeg" href="rem.jpg">
     <link rel="stylesheet" href="style.css">
-    <style>
-        .quick-tag-chip {
-            font-size: 11px;
-            padding: 3px 8px;
-            border-radius: 6px;
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--text-muted);
-            border: 1px solid var(--border-color);
-            cursor: pointer;
-            transition: all 0.2s;
-            user-select: none;
-        }
-        .quick-tag-chip:hover {
-            background: rgba(99, 102, 241, 0.2);
-            color: #c7d2fe;
-            border-color: var(--primary);
-        }
-    </style>
 </head>
 <body>
     <!-- Navbar -->
     <nav class="navbar">
         <div class="nav-container">
-            <a href="index.html" class="nav-brand">📚 HManga</a>
+            <a href="index.html" class="nav-brand">
+                <img src="rem.jpg" alt="HManga Logo" class="nav-logo">
+                <span>HManga</span>
+            </a>
+            <div class="nav-center">
+                <a href="search.html" class="nav-link nav-search-pill">
+                    <img src="data-icon/search.png" alt="Tìm kiếm" class="nav-icon">
+                    <span>Tìm kiếm</span>
+                </a>
+            </div>
             <div class="nav-links">
-                <a href="index.html" class="nav-link">Trang chủ</a>
-                <a href="tags.html" class="nav-link">🏷️ Thể loại</a>
+                <a href="index.html" class="nav-link">
+                    <img src="data-icon/home.png" alt="Trang chủ" class="nav-icon">
+                    <span>Trang chủ</span>
+                </a>
+                <a href="genres.html" class="nav-link">🏷️ Thể loại</a>
                 <a href="authors.html" class="nav-link">✍️ Tác giả</a>
-                <a href="search.html" class="nav-link">🔍 Tìm kiếm</a>
-                <a href="add.html" class="btn-add active">+ Thêm truyện</a>
+                <a href="add.html" class="btn-add active">
+                    <img src="data-icon/plus.png" alt="Thêm" class="nav-icon">
+                    <span>Thêm truyện</span>
+                </a>
             </div>
         </div>
     </nav>
@@ -43,7 +41,7 @@
     <main class="main-content" style="max-width: 800px;">
         <div class="page-header">
             <h1 class="page-title">➕ Thêm Truyện Mới</h1>
-            <p class="page-subtitle">Nhập đường link ảnh từ hentaifox để bóc tách thông tin và khởi tạo bộ truyện</p>
+            <p class="page-subtitle">Nhập link ảnh từ hentaifox để bóc tách thông tin và khởi tạo bộ truyện vào thư viện</p>
         </div>
 
         <!-- SECTION 1: URL CHECKER -->
@@ -118,15 +116,13 @@
                     <datalist id="authors-datalist"></datalist>
                 </div>
 
+                <!-- CHỌN THỂ LOẠI (CHỈ CHỌN, KHÔNG GÕ CHỮ) -->
                 <div class="form-group">
-                    <label class="form-label">Thể loại / Tags (Nhập tag rồi ấn Enter hoặc dấu phẩy):</label>
-                    <div id="tag-input-box"></div>
-                    
-                    <!-- Quick Tag Selection Chips -->
-                    <div id="quick-tags-box" style="margin-top: 10px; display: none;">
-                        <span style="font-size: 12px; color: var(--text-dim); margin-right: 6px;">Gợi ý thể loại có sẵn:</span>
-                        <div id="quick-tags-container" style="display: inline-flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;"></div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <label class="form-label" style="margin: 0;">Chọn thể loại (bấm vào các thể loại để chọn):</label>
+                        <a href="genres.html" target="_blank" style="font-size: 12px; color: var(--primary); text-decoration: none;">⚙️ Quản lý thể loại</a>
                     </div>
+                    <div id="genre-selector-box"></div>
                 </div>
             </div>
 
@@ -156,14 +152,22 @@
 
     <script src="app.js"></script>
     <script>
-        let tagInput;
+        let genreSelector;
         let currentParsed = null;
         let generatedUrls = [];
         let existingComicData = null;
 
-        // Initialize Tag Input & Autocomplete suggestions
+        // Initialize Genre Selector & Autocomplete suggestions
         document.addEventListener('DOMContentLoaded', async () => {
-            tagInput = new TagInputComponent('tag-input-box');
+            genreSelector = new GenreSelectorComponent('genre-selector-box');
+
+            // Load all available genres from database
+            try {
+                const genres = await api.getGenres();
+                genreSelector.setAvailableGenres(genres);
+            } catch (err) {
+                console.warn('Lỗi nạp thể loại:', err);
+            }
 
             // Load authors for datalist
             try {
@@ -173,27 +177,7 @@
             } catch (err) {
                 console.warn('Lỗi nạp gợi ý tác giả:', err);
             }
-
-            // Load existing tags for quick selection
-            try {
-                const tags = await api.getTags();
-                if (tags.length > 0) {
-                    const quickContainer = document.getElementById('quick-tags-container');
-                    quickContainer.innerHTML = tags.map(t => `
-                        <span class="quick-tag-chip" onclick="addQuickTag('${t.name}')">+ ${t.name}</span>
-                    `).join('');
-                    document.getElementById('quick-tags-box').style.display = 'block';
-                }
-            } catch (err) {
-                console.warn('Lỗi nạp gợi ý thể loại:', err);
-            }
         });
-
-        function addQuickTag(tagName) {
-            if (tagInput) {
-                tagInput.addTag(tagName);
-            }
-        }
 
         // Analyze URL
         async function analyzeUrl() {
@@ -317,7 +301,7 @@
             e.preventDefault();
             const title = document.getElementById('comic-title').value.trim();
             const author = document.getElementById('comic-author').value.trim();
-            const tags = tagInput.getTags();
+            const selectedGenres = genreSelector.getSelectedGenres();
 
             const baseUrl = document.getElementById('input-url').value.trim();
             const totalPages = parseInt(document.getElementById('input-total-pages').value, 10);
@@ -338,11 +322,11 @@
             btnSubmit.innerHTML = '⏳ Đang lưu truyện và tải cover...';
 
             try {
-                // 1. Tạo Comic
+                // 1. Tạo Comic kèm thể loại đã chọn
                 const comic = await api.createComic({
                     title,
                     author: author || undefined,
-                    tags,
+                    genres: selectedGenres,
                     source_url: baseUrl
                 });
 

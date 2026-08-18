@@ -6,7 +6,7 @@
 - **Tên dự án**: HManga-library
 - **Mục đích**: Website cá nhân phục vụ việc lưu trữ, quản lý và đọc truyện tranh (manga/manhwa/manhua) được chọn lọc từ các nguồn bên ngoài (tối ưu cho `hentaifox.com`).
 - **Đối tượng sử dụng**: 1 người dùng duy nhất (không cần hệ thống xác thực / auth / đăng nhập).
-- **Mô hình kiến trúc**: **Modular Monolith** — Backend phân chia rõ theo từng domain module (`comics`, `chapters`, `images`, `search`, `tags`, `authors`) nhưng chạy trong một service FastAPI duy nhất; Frontend sử dụng HTML5 + CSS3 + Vanilla JavaScript thuần (Dark theme, siêu nhẹ, không cần Node.js, được serve trực tiếp bởi FastAPI).
+- **Mô hình kiến trúc**: **Modular Monolith** — Backend phân chia rõ theo từng domain module (`comics`, `chapters`, `images`, `search`, `genres`, `authors`) chạy trong một service FastAPI duy nhất; Frontend sử dụng HTML5 + CSS3 + Vanilla JavaScript thuần (Dark theme, siêu nhẹ, không cần Node.js, được serve trực tiếp bởi FastAPI).
 
 ---
 
@@ -32,7 +32,7 @@
 
 ### 2.3. Hệ thống Cache JSON
 - File cache: `backend/cache/comics_cache.json`.
-- Tự động rebuild và lưu cấu trúc toàn bộ danh mục truyện, tag, chương và metadata mỗi khi có thao tác Thêm / Sửa / Xóa.
+- Tự động rebuild và lưu cấu trúc toàn bộ danh mục truyện, thể loại, chương và metadata mỗi khi có thao tác Thêm / Sửa / Xóa.
 
 ---
 
@@ -42,7 +42,7 @@
 | :--- | :--- | :--- |
 | **Frontend** | HTML5, CSS3 (Modern Dark Theme), Vanilla JS | Nhẹ, không cần build step, chạy trực tiếp từ FastAPI |
 | **Backend** | FastAPI (Python 3.13+), Uvicorn | Kiến trúc Modular Monolith, Pydantic, HTTPX, Aiofiles |
-| **Database** | Supabase (PostgreSQL) | Bảng `comics`, `tags`, `comic_tags`, `chapters` + Triggers |
+| **Database** | Supabase (PostgreSQL) | Bảng `comics`, `genres`, `comic_genres`, `chapters` + Triggers |
 | **Lưu trữ cover** | Local Disk Storage (`cover-images/`) | Tự động đồng bộ theo `gallery_id` |
 
 ---
@@ -64,19 +64,19 @@ HManga-library/
 │       ├── chapters/              # Quản lý chương & Render URL động
 │       ├── images/                # Download cover & Serve ảnh bìa
 │       ├── search/                # Tìm kiếm và lọc nâng cao
-│       ├── tags/                  # Quản lý thể loại / tags
+│       ├── genres/                # Quản lý thể loại (genres)
 │       └── authors/               # Quản lý tác giả
 │
 ├── frontend/
 │   ├── index.html                 # Trang chủ: Lưới truyện, tìm nhanh
-│   ├── add.html                   # Thêm truyện: URL Checker + Gợi ý tag/tác giả
+│   ├── add.html                   # Thêm truyện: URL Checker + Chọn thể loại trực quan
 │   ├── detail.html                # Chi tiết truyện: Sửa metadata, sửa/thêm/xóa chapter
-│   ├── tags.html                  # Quản lý thể loại: Thêm/Sửa/Xóa tag, xem truyện theo tag
+│   ├── genres.html                # Quản lý thể loại: Thêm/Sửa/Xóa thể loại, xem truyện theo thể loại
 │   ├── authors.html               # Quản lý tác giả: Xem danh sách, đổi tên hàng loạt
 │   ├── reader.html                # Trình đọc truyện: 2 chế độ (cuộn dọc/từng trang), điều hướng
-│   ├── search.html                # Tìm kiếm theo tên, tác giả, tags
+│   ├── search.html                # Tìm kiếm theo tên, tác giả, thể loại
 │   ├── style.css                  # Giao diện Dark theme hiện đại, responsive
-│   ├── app.js                     # API Client, Tag Input, Toast Notification
+│   ├── app.js                     # API Client, Genre Selector, Toast Notification
 │   ├── rem.jpg                    # Ảnh placeholder khi lỗi bìa
 │   └── data-icon/                 # Thư mục icon giao diện
 │
@@ -106,17 +106,18 @@ CREATE TABLE public.comics (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 2. Bảng thể loại / tags
-CREATE TABLE public.tags (
+-- 2. Bảng thể loại (genres)
+CREATE TABLE public.genres (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(100) UNIQUE NOT NULL
+    name VARCHAR(100) UNIQUE NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 3. Bảng liên kết truyện & tag (Many-to-Many)
-CREATE TABLE public.comic_tags (
+-- 3. Bảng liên kết truyện & thể loại (Many-to-Many)
+CREATE TABLE public.comic_genres (
     comic_id INT REFERENCES public.comics(id) ON DELETE CASCADE,
-    tag_id INT REFERENCES public.tags(id) ON DELETE CASCADE,
-    PRIMARY KEY (comic_id, tag_id)
+    genre_id INT REFERENCES public.genres(id) ON DELETE CASCADE,
+    PRIMARY KEY (comic_id, genre_id)
 );
 
 -- 4. Bảng chương truyện
@@ -145,18 +146,20 @@ CREATE TABLE public.chapters (
   - Nút **"🧪 Test tải 3 trang đầu"** để kiểm tra link ảnh.
 - **Kiểm tra trùng lặp (`gallery_id`)**:
   - Tra cứu DB theo `gallery_id`. Nếu đã có, cho phép bấm **"Thêm chương mới vào bộ này"**.
-- **Gợi ý tự động & Tinh gọn**:
-  - Gợi ý tác giả từ database.
-  - Hiển thị danh sách tag có sẵn để click chọn nhanh.
-  - Đã loại bỏ trường ghi chú cá nhân không cần thiết.
+- **Chọn thể loại trực quan (Genre Selector Chips)**:
+  - Hiển thị danh sách tất cả các thể loại có sẵn dưới dạng nút bấm/chips.
+  - Người dùng **chỉ cần bấm chọn thể loại**, không cần gõ chữ.
+  - Hỗ trợ chọn nhiều thể loại cùng lúc (bấm để bật/tắt chọn).
+  - Có link dẫn sang trang Quản lý thể loại để thêm thể loại mới bất kỳ lúc nào.
+- **Gợi ý tác giả**: Tự động gợi ý tên tác giả từ cơ sở dữ liệu.
 - **Tự động tải Cover**: Tải ảnh trang 1 về `cover-images/{gallery_id}.jpg`.
 
-### 6.2. Quản lý Thể loại / Tags (`/tags.html`)
+### 6.2. Quản lý Thể loại (`/genres.html`)
 - Thống kê danh sách thể loại kèm **số lượng truyện** tương ứng.
 - Thêm thể loại mới.
 - **✏️ Đổi tên thể loại**: Tự động đồng bộ trên toàn bộ truyện liên quan.
-- **🗑️ Xóa thể loại**: Gỡ liên kết tag an toàn khỏi database.
-- **Xem truyện theo thể loại**: Nhấp vào tag để lọc và xem danh sách truyện ngay bên dưới.
+- **🗑️ Xóa thể loại**: Gỡ liên kết thể loại an toàn khỏi database.
+- **Xem truyện theo thể loại**: Nhấp vào thể loại để lọc và xem danh sách truyện ngay bên dưới.
 
 ### 6.3. Quản lý Tác giả (`/authors.html`)
 - Thống kê toàn bộ tác giả có trong thư viện và số lượng bộ truyện của họ.
@@ -165,13 +168,13 @@ CREATE TABLE public.chapters (
 
 ### 6.4. Trang chủ (`/index.html`)
 - Hiển thị toàn bộ truyện dạng lưới card Dark mode, sắp xếp theo ID thêm vào (1, 2, 3...).
-- Thẻ truyện hiển thị: Ảnh bìa, Tên truyện, Tác giả, và các Tag.
+- Thẻ truyện hiển thị: Ảnh bìa, Tên truyện, Tác giả, và các Thể loại.
 - Thanh tìm kiếm nhanh theo tên truyện.
 
 ### 6.5. Chi tiết truyện & Quản lý chương (`/detail.html`)
-- Xem metadata, ID thứ tự truyện, ảnh bìa, các tag thể loại.
+- Xem metadata, ID thứ tự truyện, ảnh bìa, các thể loại của truyện.
 - Danh sách các chương sắp xếp theo thứ tự số chương tăng dần (`Ch.1`, `Ch.2`...).
-- **Modal Sửa thông tin truyện**: Sửa tên, tác giả (có gợi ý), chỉnh sửa danh sách tag (có gợi ý).
+- **Modal Sửa thông tin truyện**: Sửa tên, tác giả (có gợi ý), chọn lại thể loại bằng nút bấm chọn thể loại trực quan.
 - **Modal Sửa chương**: Đổi số chương (ví dụ chuyển chương 1 thành 2, 1.5...) và đổi tên chương.
 - **Modal Thêm chương mới**: Tích hợp `UrlChecker` để thêm chương trực tiếp cho bộ truyện này.
 - **Xóa chương & Xóa truyện**: Có xác nhận an toàn; khi xóa truyện sẽ tự động xóa file cover local.
@@ -187,7 +190,7 @@ CREATE TABLE public.chapters (
 - Hiển thị tên truyện, số chương, tổng số trang trên header cố định.
 
 ### 6.7. Tìm kiếm & Lọc (`/search.html`)
-- Tìm kiếm đồng thời theo: Tên truyện, Tác giả, Tag/Thể loại (từ khóa tự do).
+- Tìm kiếm đồng thời theo: Tên truyện, Tác giả, Thể loại (dropdown chọn thể loại).
 - Trả về kết quả dưới dạng lưới thẻ truyện trực quan.
 
 ---

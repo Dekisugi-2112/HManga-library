@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chi Tiết Truyện — HManga Library</title>
+    <!-- Favicon website -->
+    <link rel="icon" type="image/jpeg" href="rem.jpg">
     <link rel="stylesheet" href="style.css">
     <style>
         .detail-header {
@@ -49,22 +51,6 @@
             gap: 12px;
             flex: 1;
         }
-        .quick-tag-chip {
-            font-size: 11px;
-            padding: 3px 8px;
-            border-radius: 6px;
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--text-muted);
-            border: 1px solid var(--border-color);
-            cursor: pointer;
-            transition: all 0.2s;
-            user-select: none;
-        }
-        .quick-tag-chip:hover {
-            background: rgba(99, 102, 241, 0.2);
-            color: #c7d2fe;
-            border-color: var(--primary);
-        }
         @media (max-width: 640px) {
             .detail-header {
                 flex-direction: column;
@@ -80,13 +66,27 @@
     <!-- Navbar -->
     <nav class="navbar">
         <div class="nav-container">
-            <a href="index.html" class="nav-brand">📚 HManga</a>
+            <a href="index.html" class="nav-brand">
+                <img src="rem.jpg" alt="HManga Logo" class="nav-logo">
+                <span>HManga</span>
+            </a>
+            <div class="nav-center">
+                <a href="search.html" class="nav-link nav-search-pill">
+                    <img src="data-icon/search.png" alt="Tìm kiếm" class="nav-icon">
+                    <span>Tìm kiếm</span>
+                </a>
+            </div>
             <div class="nav-links">
-                <a href="index.html" class="nav-link">Trang chủ</a>
-                <a href="tags.html" class="nav-link">🏷️ Thể loại</a>
+                <a href="index.html" class="nav-link">
+                    <img src="data-icon/home.png" alt="Trang chủ" class="nav-icon">
+                    <span>Trang chủ</span>
+                </a>
+                <a href="genres.html" class="nav-link">🏷️ Thể loại</a>
                 <a href="authors.html" class="nav-link">✍️ Tác giả</a>
-                <a href="search.html" class="nav-link">🔍 Tìm kiếm</a>
-                <a href="add.html" class="btn-add">+ Thêm truyện</a>
+                <a href="add.html" class="btn-add">
+                    <img src="data-icon/plus.png" alt="Thêm" class="nav-icon">
+                    <span>Thêm truyện</span>
+                </a>
             </div>
         </div>
     </nav>
@@ -125,9 +125,11 @@
                     <datalist id="edit-authors-datalist"></datalist>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Tags / Thể loại</label>
-                    <div id="edit-tags-container"></div>
-                    <div id="edit-quick-tags" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;"></div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <label class="form-label" style="margin: 0;">Chọn thể loại:</label>
+                        <a href="genres.html" target="_blank" style="font-size: 12px; color: var(--primary); text-decoration: none;">⚙️ Quản lý thể loại</a>
+                    </div>
+                    <div id="edit-genres-container"></div>
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('modal-edit-comic')">Hủy</button>
@@ -204,7 +206,7 @@
         const urlParams = new URLSearchParams(window.location.search);
         const comicId = parseInt(urlParams.get('id'), 10);
         let currentComic = null;
-        let editTagsInput = null;
+        let editGenreSelector = null;
 
         function closeModal(id) {
             document.getElementById(id).classList.remove('active');
@@ -228,7 +230,7 @@
             try {
                 currentComic = await api.getComic(comicId);
                 const coverUrl = api.getCoverUrl(currentComic.cover_filename);
-                const tagsHtml = (currentComic.tags || []).map(t => `<a href="tags.html" class="tag-chip" style="font-size: 11px; padding: 3px 8px; text-decoration: none;">🏷️ ${t}</a>`).join('');
+                const genresHtml = (currentComic.genres || []).map(g => `<a href="genres.html" class="tag-chip" style="font-size: 11px; padding: 3px 8px; text-decoration: none;">🏷️ ${g}</a>`).join('');
 
                 document.getElementById('comic-detail-content').innerHTML = `
                     <div class="detail-header">
@@ -242,7 +244,7 @@
                             </div>
                             <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 12px;">Tác giả: <a href="authors.html" style="color: var(--text-main); font-weight: 500; text-decoration: none;">✍️ ${currentComic.author || 'Chưa rõ'}</a></p>
                             <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
-                                ${tagsHtml || '<span style="color: var(--text-dim); font-size: 12px;">Chưa có tag nào</span>'}
+                                ${genresHtml || '<span style="color: var(--text-dim); font-size: 12px;">Chưa chọn thể loại nào</span>'}
                             </div>
                             <div style="display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap;">
                                 <button type="button" onclick="openEditComicModal()" class="btn btn-secondary btn-sm">✏️ Sửa thông tin</button>
@@ -292,24 +294,24 @@
             document.getElementById('edit-comic-title').value = currentComic.title;
             document.getElementById('edit-comic-author').value = currentComic.author || '';
 
-            if (!editTagsInput) {
-                editTagsInput = new TagInputComponent('edit-tags-container', currentComic.tags || []);
+            if (!editGenreSelector) {
+                editGenreSelector = new GenreSelectorComponent('edit-genres-container', [], currentComic.genres || []);
             } else {
-                editTagsInput.setTags(currentComic.tags || []);
+                editGenreSelector.setSelectedGenres(currentComic.genres || []);
             }
+
+            // Load available genres
+            try {
+                const genres = await api.getGenres();
+                editGenreSelector.setAvailableGenres(genres);
+                editGenreSelector.setSelectedGenres(currentComic.genres || []);
+            } catch {}
 
             // Load author suggestions
             try {
                 const authors = await api.getAuthors();
                 const datalist = document.getElementById('edit-authors-datalist');
                 datalist.innerHTML = authors.map(a => `<option value="${a.name}">`).join('');
-            } catch {}
-
-            // Load quick tag suggestions
-            try {
-                const tags = await api.getTags();
-                const container = document.getElementById('edit-quick-tags');
-                container.innerHTML = tags.map(t => `<span class="quick-tag-chip" onclick="editTagsInput.addTag('${t.name}')">+ ${t.name}</span>`).join('');
             } catch {}
 
             openModal('modal-edit-comic');
@@ -321,7 +323,7 @@
                 await api.updateComic(comicId, {
                     title: document.getElementById('edit-comic-title').value.trim(),
                     author: document.getElementById('edit-comic-author').value.trim() || undefined,
-                    tags: editTagsInput.getTags()
+                    genres: editGenreSelector.getSelectedGenres()
                 });
                 closeModal('modal-edit-comic');
                 showToast('Đã cập nhật thông tin bộ truyện!', 'success');

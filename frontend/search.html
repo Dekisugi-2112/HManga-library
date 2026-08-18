@@ -2,7 +2,7 @@
   HManga Library — Trang Tìm Kiếm & Lọc Nâng Cao (search.html)
   ===========================================================
   Nhiệm vụ:
-  - Cung cấp form tìm kiếm kết hợp nhiều tiêu chí: tên truyện, tác giả, thể loại/tags.
+  - Cung cấp form tìm kiếm kết hợp nhiều tiêu chí: tên truyện, tác giả, thể loại.
   - Hiển thị kết quả tìm kiếm theo dạng lưới thẻ truyện (Grid Cards).
   - Cho phép người dùng đặt lại bộ lọc tìm kiếm (Reset filter).
 -->
@@ -41,7 +41,7 @@
                     <img src="data-icon/home.png" alt="Trang chủ" class="nav-icon">
                     <span>Trang chủ</span>
                 </a>
-                <a href="tags.html" class="nav-link">🏷️ Thể loại</a>
+                <a href="genres.html" class="nav-link">🏷️ Thể loại</a>
                 <a href="authors.html" class="nav-link">✍️ Tác giả</a>
                 <a href="add.html" class="btn-add">
                     <img src="data-icon/plus.png" alt="Thêm" class="nav-icon">
@@ -56,7 +56,7 @@
         <!-- Tiêu đề trang tìm kiếm -->
         <div class="page-header">
             <h1 class="page-title">🔍 Tìm Kiếm & Lọc Truyện</h1>
-            <p class="page-subtitle">Tìm kiếm kết hợp theo tên bộ truyện, tác giả và thể loại/tags</p>
+            <p class="page-subtitle">Tìm kiếm kết hợp theo tên bộ truyện, tác giả và thể loại</p>
         </div>
 
         <!-- FORM TÌM KIẾM NÂNG CAO -->
@@ -69,13 +69,16 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Tác giả:</label>
-                        <input type="text" id="search-author" class="form-control" placeholder="Nhập tên tác giả...">
+                        <input type="text" id="search-author" list="search-authors-datalist" class="form-control" placeholder="Nhập hoặc chọn tên tác giả...">
+                        <datalist id="search-authors-datalist"></datalist>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Tag / Thể loại:</label>
-                    <input type="text" id="search-tag" class="form-control" placeholder="Ví dụ: romance, comedy, action...">
+                    <label class="form-label">Thể loại:</label>
+                    <select id="search-genre" class="form-control">
+                        <option value="">-- Tất cả thể loại --</option>
+                    </select>
                 </div>
 
                 <div style="display: flex; gap: 10px;">
@@ -97,13 +100,36 @@
     <!-- Nạp file JavaScript tiện ích dùng chung -->
     <script src="app.js"></script>
     <script>
-        /**
-         * Hàm thực hiện tìm kiếm truyện dựa trên các trường nhập liệu trong form
-         */
+        // Load initial genres and authors for filter dropdown
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const genres = await api.getGenres();
+                const genreSelect = document.getElementById('search-genre');
+                genres.forEach(g => {
+                    const opt = document.createElement('option');
+                    opt.value = g.name;
+                    opt.textContent = `${g.name} (${g.comic_count} truyện)`;
+                    genreSelect.appendChild(opt);
+                });
+            } catch (err) {
+                console.warn('Lỗi nạp thể loại tìm kiếm:', err);
+            }
+
+            try {
+                const authors = await api.getAuthors();
+                const datalist = document.getElementById('search-authors-datalist');
+                datalist.innerHTML = authors.map(a => `<option value="${a.name}">`).join('');
+            } catch (err) {
+                console.warn('Lỗi nạp tác giả tìm kiếm:', err);
+            }
+
+            doSearch();
+        });
+
         async function doSearch() {
             const q = document.getElementById('search-q').value.trim();
             const author = document.getElementById('search-author').value.trim();
-            const tag = document.getElementById('search-tag').value.trim();
+            const genre = document.getElementById('search-genre').value.trim();
 
             const grid = document.getElementById('results-grid');
             const resHeader = document.getElementById('results-header');
@@ -112,12 +138,10 @@
             grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-dim);">⏳ Đang tìm kiếm...</div>';
 
             try {
-                // Gọi API tìm kiếm nâng cao với các tham số
-                const results = await api.searchComics({ q, author, tag });
+                const results = await api.searchComics({ q, author, genre });
                 resHeader.style.display = 'block';
                 countEl.textContent = results.length;
 
-                // Nếu không có kết quả nào khớp
                 if (results.length === 0) {
                     grid.innerHTML = `
                         <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--text-muted);">
@@ -128,11 +152,10 @@
                     return;
                 }
 
-                // Render danh sách các thẻ truyện tìm được
                 grid.innerHTML = results.map(comic => {
                     const coverUrl = api.getCoverUrl(comic.cover_filename);
-                    const tagsHtml = (comic.tags || []).slice(0, 3).map(t => 
-                        `<span class="tag-chip">${t}</span>`
+                    const genresHtml = (comic.genres || []).slice(0, 3).map(g => 
+                        `<span class="tag-chip">${g}</span>`
                     ).join('');
 
                     return `
@@ -143,14 +166,13 @@
                             <div class="card-body">
                                 <div class="card-title" title="${comic.title}">${comic.title}</div>
                                 <div class="card-author">${comic.author || 'Tác giả chưa rõ'}</div>
-                                <div class="card-tags">${tagsHtml}</div>
+                                <div class="card-tags">${genresHtml}</div>
                             </div>
                         </a>
                     `;
                 }).join('');
 
             } catch (err) {
-                // Hiển thị thông báo lỗi nếu có
                 grid.innerHTML = `
                     <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--danger);">
                         ❌ Lỗi tìm kiếm: ${err.message}
@@ -159,20 +181,15 @@
             }
         }
 
-        // Lắng nghe sự kiện Submit form tìm kiếm
         document.getElementById('search-form').addEventListener('submit', (e) => {
             e.preventDefault();
             doSearch();
         });
 
-        // Lắng nghe sự kiện click nút Reset bộ lọc
         document.getElementById('btn-reset-search').addEventListener('click', () => {
             document.getElementById('search-form').reset();
             doSearch();
         });
-
-        // Tự động tải tất cả truyện khi vừa mở trang
-        doSearch();
     </script>
 </body>
 </html>

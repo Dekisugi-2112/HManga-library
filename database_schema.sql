@@ -1,5 +1,5 @@
 -- =========================================================================
--- HManga-library Database Schema (Simplified: Multi-only, No Status, No Notes)
+-- HManga-library Database Schema (Thể Loại / Genres Model — No Tags)
 -- Chạy script này trên Supabase SQL Editor
 -- =========================================================================
 
@@ -14,25 +14,31 @@ CREATE TABLE IF NOT EXISTS public.comics (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Nếu database đã có bảng comics từ trước, gỡ các cột không dùng:
+-- Dọn dẹp các cột cũ không sử dụng trong bảng comics:
 ALTER TABLE public.comics DROP COLUMN IF EXISTS type;
 ALTER TABLE public.comics DROP COLUMN IF EXISTS status;
 ALTER TABLE public.comics DROP COLUMN IF EXISTS personal_note;
 
--- 2. Bảng tags
-CREATE TABLE IF NOT EXISTS public.tags (
+-- 2. Xóa bỏ hoàn toàn hệ thống tags cũ (nếu có)
+DROP TABLE IF EXISTS public.comic_tags CASCADE;
+DROP TABLE IF EXISTS public.tags CASCADE;
+DROP INDEX IF EXISTS idx_tags_name;
+
+-- 3. Bảng thể loại (genres)
+CREATE TABLE IF NOT EXISTS public.genres (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(100) UNIQUE NOT NULL
+    name VARCHAR(100) UNIQUE NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 3. Bảng comic_tags (join table)
-CREATE TABLE IF NOT EXISTS public.comic_tags (
+-- 4. Bảng liên kết truyện & thể loại (comic_genres)
+CREATE TABLE IF NOT EXISTS public.comic_genres (
     comic_id INT REFERENCES public.comics(id) ON DELETE CASCADE,
-    tag_id INT REFERENCES public.tags(id) ON DELETE CASCADE,
-    PRIMARY KEY (comic_id, tag_id)
+    genre_id INT REFERENCES public.genres(id) ON DELETE CASCADE,
+    PRIMARY KEY (comic_id, genre_id)
 );
 
--- 4. Bảng chapters
+-- 5. Bảng chapters
 CREATE TABLE IF NOT EXISTS public.chapters (
     id SERIAL PRIMARY KEY,
     comic_id INT NOT NULL REFERENCES public.comics(id) ON DELETE CASCADE,
@@ -50,7 +56,7 @@ CREATE INDEX IF NOT EXISTS idx_comics_title ON public.comics(title);
 CREATE INDEX IF NOT EXISTS idx_comics_author ON public.comics(author);
 CREATE INDEX IF NOT EXISTS idx_chapters_comic_id ON public.chapters(comic_id);
 CREATE INDEX IF NOT EXISTS idx_chapters_number ON public.chapters(comic_id, chapter_number);
-CREATE INDEX IF NOT EXISTS idx_tags_name ON public.tags(name);
+CREATE INDEX IF NOT EXISTS idx_genres_name ON public.genres(name);
 
 -- Gỡ index cũ nếu có
 DROP INDEX IF EXISTS idx_comics_status;
@@ -76,3 +82,25 @@ CREATE TRIGGER update_chapters_modtime
     BEFORE UPDATE ON public.chapters
     FOR EACH ROW
     EXECUTE FUNCTION update_modified_column();
+
+-- Thêm các thể loại mẫu phổ biến nếu bảng chưa có
+INSERT INTO public.genres (name) VALUES
+    ('Action'),
+    ('Adventure'),
+    ('Comedy'),
+    ('Drama'),
+    ('Fantasy'),
+    ('Harem'),
+    ('Horror'),
+    ('Mystery'),
+    ('Romance'),
+    ('School Life'),
+    ('Sci-Fi'),
+    ('Slice of Life'),
+    ('Supernatural'),
+    ('Ecchi'),
+    ('Doujinshi'),
+    ('Manga'),
+    ('Manhwa'),
+    ('Manhua')
+ON CONFLICT (name) DO NOTHING;

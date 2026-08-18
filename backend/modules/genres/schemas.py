@@ -1,13 +1,13 @@
 from pydantic import BaseModel
 from typing import Optional
 
-class TagCreate(BaseModel):
+class GenreCreate(BaseModel):
     name: str
 
-class TagUpdate(BaseModel):
+class GenreUpdate(BaseModel):
     name: str
 
-class TagResponse(BaseModel):
+class GenreResponse(BaseModel):
     id: int
     name: str
     comic_count: Optional[int] = 0

@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quản Lý Tác Giả — HManga Library</title>
+    <!-- Favicon website -->
+    <link rel="icon" type="image/jpeg" href="rem.jpg">
     <link rel="stylesheet" href="style.css">
     <style>
         .author-manage-grid {
@@ -53,13 +55,27 @@
     <!-- Navbar -->
     <nav class="navbar">
         <div class="nav-container">
-            <a href="index.html" class="nav-brand">📚 HManga</a>
+            <a href="index.html" class="nav-brand">
+                <img src="rem.jpg" alt="HManga Logo" class="nav-logo">
+                <span>HManga</span>
+            </a>
+            <div class="nav-center">
+                <a href="search.html" class="nav-link nav-search-pill">
+                    <img src="data-icon/search.png" alt="Tìm kiếm" class="nav-icon">
+                    <span>Tìm kiếm</span>
+                </a>
+            </div>
             <div class="nav-links">
-                <a href="index.html" class="nav-link">Trang chủ</a>
-                <a href="tags.html" class="nav-link">🏷️ Thể loại</a>
+                <a href="index.html" class="nav-link">
+                    <img src="data-icon/home.png" alt="Trang chủ" class="nav-icon">
+                    <span>Trang chủ</span>
+                </a>
+                <a href="genres.html" class="nav-link">🏷️ Thể loại</a>
                 <a href="authors.html" class="nav-link active">✍️ Tác giả</a>
-                <a href="search.html" class="nav-link">🔍 Tìm kiếm</a>
-                <a href="add.html" class="btn-add">+ Thêm truyện</a>
+                <a href="add.html" class="btn-add">
+                    <img src="data-icon/plus.png" alt="Thêm" class="nav-icon">
+                    <span>Thêm truyện</span>
+                </a>
             </div>
         </div>
     </nav>
@@ -178,7 +194,7 @@
 
                 grid.innerHTML = comics.map(comic => {
                     const coverUrl = api.getCoverUrl(comic.cover_filename);
-                    const tagsHtml = (comic.tags || []).slice(0, 3).map(t => `<span class="tag-chip">${t}</span>`).join('');
+                    const genresHtml = (comic.genres || []).slice(0, 3).map(g => `<span class="tag-chip">${g}</span>`).join('');
                     return `
                         <a href="detail.html?id=${comic.id}" class="comic-card">
                             <div class="card-thumb-wrapper">
@@ -187,7 +203,7 @@
                             <div class="card-body">
                                 <div class="card-title" title="${comic.title}">${comic.title}</div>
                                 <div class="card-author">${comic.author || 'Tác giả chưa rõ'}</div>
-                                <div class="card-tags">${tagsHtml}</div>
+                                <div class="card-tags">${genresHtml}</div>
                             </div>
                         </a>
                     `;

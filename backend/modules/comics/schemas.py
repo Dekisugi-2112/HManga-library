@@ -6,7 +6,7 @@ class ComicBase(BaseModel):
     title: str
     author: Optional[str] = None
     source_url: Optional[str] = None
-    tags: List[str] = []
+    genres: List[str] = []
 
 class ComicCreate(ComicBase):
     pass
@@ -15,14 +15,14 @@ class ComicUpdate(BaseModel):
     title: Optional[str] = None
     author: Optional[str] = None
     source_url: Optional[str] = None
-    tags: Optional[List[str]] = None
+    genres: Optional[List[str]] = None
 
 class ComicResponse(BaseModel):
     id: int
     title: str
     author: Optional[str] = None
     source_url: Optional[str] = None
-    tags: List[str] = []
+    genres: List[str] = []
     cover_filename: Optional[str] = None
     created_at: datetime
     updated_at: datetime

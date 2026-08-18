@@ -4,10 +4,10 @@
  * File tiện ích dùng chung cho toàn bộ giao diện Frontend.
  * Bao gồm:
  * 1. Cấu hình địa chỉ backend API (API_BASE).
- * 2. Hệ thống hiển thị thông báo Toast Notification (thành công, lỗi, cảnh báo).
- * 3. Module `api` chứa toàn bộ các hàm gọi RESTful API tới Backend (Comics, Chapters, Tags, Authors).
+ * 2. Hệ thống hiển thị thông báo Toast Notification.
+ * 3. Module `api` chứa toàn bộ các hàm gọi RESTful API tới Backend (Comics, Chapters, Genres, Authors).
  * 4. Tiện ích phân tích cú pháp URL hentaifox (`parseHentaifoxUrl`, `generatePageUrls`, `extractGalleryId`).
- * 5. Thành phần nhập thẻ tag trực quan (`TagInputComponent`).
+ * 5. Thành phần chọn thể loại trực quan dạng Chips (`GenreSelectorComponent`).
  */
 
 // Tự động nhận diện URL Backend API dựa theo môi trường hiện tại
@@ -41,7 +41,7 @@ const api = {
     // === COMICS ===
     async getComics(params = {}) {
         const query = new URLSearchParams();
-        if (params.tag) query.set('tag', params.tag);
+        if (params.genre) query.set('genre', params.genre);
         if (params.q) query.set('q', params.q);
         const res = await fetch(`${API_BASE}/api/comics${query.toString() ? '?' + query.toString() : ''}`);
         if (!res.ok) throw new Error('Không thể tải danh sách truyện');
@@ -128,7 +128,7 @@ const api = {
     async searchComics(params = {}) {
         const query = new URLSearchParams();
         if (params.q) query.set('q', params.q);
-        if (params.tag) query.set('tag', params.tag);
+        if (params.genre) query.set('genre', params.genre);
         if (params.author) query.set('author', params.author);
         const res = await fetch(`${API_BASE}/api/search?${query.toString()}`);
         if (!res.ok) throw new Error('Lỗi tìm kiếm');
@@ -147,15 +147,15 @@ const api = {
         return `${API_BASE}/api/covers/${filename}`;
     },
 
-    // === TAGS / GENRES MANAGEMENT ===
-    async getTags() {
-        const res = await fetch(`${API_BASE}/api/tags`);
+    // === GENRES (THỂ LOẠI) MANAGEMENT ===
+    async getGenres() {
+        const res = await fetch(`${API_BASE}/api/genres`);
         if (!res.ok) throw new Error('Không thể tải danh sách thể loại');
         return res.json();
     },
 
-    async createTag(name) {
-        const res = await fetch(`${API_BASE}/api/tags`, {
+    async createGenre(name) {
+        const res = await fetch(`${API_BASE}/api/genres`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name })
@@ -164,8 +164,8 @@ const api = {
         return res.json();
     },
 
-    async updateTag(tagId, name) {
-        const res = await fetch(`${API_BASE}/api/tags/${tagId}`, {
+    async updateGenre(genreId, name) {
+        const res = await fetch(`${API_BASE}/api/genres/${genreId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name })
@@ -174,14 +174,14 @@ const api = {
         return res.json();
     },
 
-    async deleteTag(tagId) {
-        const res = await fetch(`${API_BASE}/api/tags/${tagId}`, { method: 'DELETE' });
+    async deleteGenre(genreId) {
+        const res = await fetch(`${API_BASE}/api/genres/${genreId}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Lỗi khi xóa thể loại');
         return res.json();
     },
 
-    async getComicsByTag(tagId) {
-        const res = await fetch(`${API_BASE}/api/tags/${tagId}/comics`);
+    async getComicsByGenre(genreId) {
+        const res = await fetch(`${API_BASE}/api/genres/${genreId}/comics`);
         if (!res.ok) throw new Error('Không thể tải danh sách truyện theo thể loại');
         return res.json();
     },
@@ -243,77 +243,76 @@ function extractGalleryId(url) {
     return parsed ? parsed.galleryId : null;
 }
 
-// ==================== 4. TAG INPUT COMPONENT ====================
-class TagInputComponent {
-    constructor(containerId, initialTags = []) {
+// ==================== 4. GENRE SELECTOR COMPONENT ====================
+/**
+ * Component chọn Thể loại dạng Chips (Click để chọn/bỏ chọn).
+ * Người dùng KHÔNG nhập chữ mà chỉ chọn từ danh sách thể loại có sẵn.
+ */
+class GenreSelectorComponent {
+    constructor(containerId, availableGenres = [], selectedGenres = []) {
         this.container = document.getElementById(containerId);
-        this.tags = [...initialTags];
+        this.availableGenres = [...availableGenres];
+        this.selectedGenres = new Set(selectedGenres.map(g => g.toLowerCase().trim()));
         this.init();
     }
 
     init() {
         if (!this.container) return;
-        this.container.className = 'tag-input-container';
+        this.render();
+    }
+
+    setAvailableGenres(genres) {
+        this.availableGenres = [...genres];
+        this.render();
+    }
+
+    setSelectedGenres(genres) {
+        this.selectedGenres = new Set(genres.map(g => g.toLowerCase().trim()));
+        this.render();
+    }
+
+    getSelectedGenres() {
+        return Array.from(this.selectedGenres);
+    }
+
+    toggleGenre(genreName) {
+        const key = genreName.toLowerCase().trim();
+        if (this.selectedGenres.has(key)) {
+            this.selectedGenres.delete(key);
+        } else {
+            this.selectedGenres.add(key);
+        }
         this.render();
     }
 
     render() {
-        this.container.innerHTML = '';
-        this.tags.forEach((tag, idx) => {
-            const badge = document.createElement('span');
-            badge.className = 'tag-badge';
-            badge.innerHTML = `${tag} <span class="tag-remove" data-idx="${idx}">×</span>`;
-            this.container.appendChild(badge);
-        });
+        if (!this.container) return;
+        if (this.availableGenres.length === 0) {
+            this.container.innerHTML = `
+                <div style="padding: 10px; color: var(--text-dim); font-size: 13px;">
+                    Chưa có thể loại nào trong hệ thống. <a href="genres.html" style="color: var(--primary);">Bấm vào đây để thêm thể loại</a>
+                </div>
+            `;
+            return;
+        }
 
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'tag-text-input';
-        input.placeholder = this.tags.length === 0 ? 'Nhập tag rồi Enter hoặc dấu phẩy...' : '';
-        
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ',') {
-                e.preventDefault();
-                const val = input.value.trim().toLowerCase().replace(',', '');
-                if (val && !this.tags.includes(val)) {
-                    this.tags.push(val);
-                    this.render();
-                    const newInput = this.container.querySelector('.tag-text-input');
-                    if (newInput) newInput.focus();
-                }
-            } else if (e.key === 'Backspace' && input.value === '' && this.tags.length > 0) {
-                this.tags.pop();
-                this.render();
-                const newInput = this.container.querySelector('.tag-text-input');
-                if (newInput) newInput.focus();
-            }
-        });
+        this.container.className = 'genre-select-container';
+        this.container.innerHTML = this.availableGenres.map(genre => {
+            const name = typeof genre === 'string' ? genre : genre.name;
+            const isSelected = this.selectedGenres.has(name.toLowerCase().trim());
+            return `
+                <button type="button" class="genre-chip-btn ${isSelected ? 'active' : ''}" data-name="${name}">
+                    <span class="genre-check">${isSelected ? '✓' : '+'}</span>
+                    <span>${name}</span>
+                </button>
+            `;
+        }).join('');
 
-        this.container.appendChild(input);
-
-        this.container.querySelectorAll('.tag-remove').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const idx = parseInt(e.target.getAttribute('data-idx'), 10);
-                this.tags.splice(idx, 1);
-                this.render();
+        this.container.querySelectorAll('.genre-chip-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const name = btn.getAttribute('data-name');
+                this.toggleGenre(name);
             });
         });
-    }
-
-    addTag(tag) {
-        const cleanTag = tag.trim().toLowerCase();
-        if (cleanTag && !this.tags.includes(cleanTag)) {
-            this.tags.push(cleanTag);
-            this.render();
-        }
-    }
-
-    getTags() {
-        return this.tags;
-    }
-
-    setTags(tags) {
-        this.tags = [...tags];
-        this.render();
     }
 }
