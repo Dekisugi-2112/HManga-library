@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tìm Kiếm Nâng Cao — HManga Library</title>
+    <title>Tìm Kiếm — HManga Library</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -23,7 +23,7 @@
     <main class="main-content">
         <div class="page-header">
             <h1 class="page-title">🔍 Tìm Kiếm & Lọc Truyện</h1>
-            <p class="page-subtitle">Tìm kiếm kết hợp theo nhiều tiêu chí: tên bộ truyện, tác giả, thể loại và trạng thái</p>
+            <p class="page-subtitle">Tìm kiếm kết hợp theo tên bộ truyện, tác giả và thể loại/tags</p>
         </div>
 
         <!-- SEARCH FORM -->
@@ -40,19 +40,9 @@
                     </div>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Tag / Thể loại:</label>
-                        <input type="text" id="search-tag" class="form-control" placeholder="Ví dụ: romance, comedy, action...">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Trạng thái:</label>
-                        <select id="search-status" class="form-control">
-                            <option value="">Tất cả trạng thái</option>
-                            <option value="ongoing">Đang tiến hành</option>
-                            <option value="completed">Hoàn thành</option>
-                        </select>
-                    </div>
+                <div class="form-group">
+                    <label class="form-label">Tag / Thể loại:</label>
+                    <input type="text" id="search-tag" class="form-control" placeholder="Ví dụ: romance, comedy, action...">
                 </div>
 
                 <div style="display: flex; gap: 10px;">
@@ -76,7 +66,6 @@
             const q = document.getElementById('search-q').value.trim();
             const author = document.getElementById('search-author').value.trim();
             const tag = document.getElementById('search-tag').value.trim();
-            const status = document.getElementById('search-status').value;
 
             const grid = document.getElementById('results-grid');
             const resHeader = document.getElementById('results-header');
@@ -85,14 +74,14 @@
             grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-dim);">⏳ Đang tìm kiếm...</div>';
 
             try {
-                const results = await api.searchComics({ q, author, tag, status });
+                const results = await api.searchComics({ q, author, tag });
                 resHeader.style.display = 'block';
                 countEl.textContent = results.length;
 
                 if (results.length === 0) {
                     grid.innerHTML = `
                         <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--text-muted);">
-                            <p style="font-size: 16px; margin-bottom: 6px;">Không tìm thấy bộ truyện nào phù hợp với bộ lọc</p>
+                            <p style="font-size: 16px; margin-bottom: 6px;">Không tìm thấy bộ truyện nào phù hợp</p>
                             <p style="font-size: 13px; color: var(--text-dim);">Hãy thử giảm bớt điều kiện tìm kiếm</p>
                         </div>
                     `;
@@ -101,13 +90,6 @@
 
                 grid.innerHTML = results.map(comic => {
                     const coverUrl = api.getCoverUrl(comic.cover_filename);
-                    const statusBadge = comic.status === 'ongoing' 
-                        ? '<span class="badge badge-status badge-ongoing">Đang tiến hành</span>'
-                        : '<span class="badge badge-status badge-completed">Hoàn thành</span>';
-                    const oneshotBadge = comic.type === 'oneshot' 
-                        ? '<span class="badge badge-oneshot">Oneshot</span>' 
-                        : '';
-
                     const tagsHtml = (comic.tags || []).slice(0, 3).map(t => 
                         `<span class="tag-chip">${t}</span>`
                     ).join('');
@@ -116,8 +98,6 @@
                         <a href="detail.html?id=${comic.id}" class="comic-card">
                             <div class="card-thumb-wrapper">
                                 <img src="${coverUrl}" alt="${comic.title}" class="card-thumb" referrerpolicy="no-referrer" onerror="this.src='rem.jpg'">
-                                ${statusBadge}
-                                ${oneshotBadge}
                             </div>
                             <div class="card-body">
                                 <div class="card-title" title="${comic.title}">${comic.title}</div>

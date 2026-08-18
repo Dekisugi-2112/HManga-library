@@ -30,7 +30,6 @@ function showToast(message, type = 'info') {
 const api = {
     async getComics(params = {}) {
         const query = new URLSearchParams();
-        if (params.status) query.set('status', params.status);
         if (params.tag) query.set('tag', params.tag);
         if (params.q) query.set('q', params.q);
         const res = await fetch(`${API_BASE}/api/comics${query.toString() ? '?' + query.toString() : ''}`);
@@ -116,7 +115,6 @@ const api = {
         const query = new URLSearchParams();
         if (params.q) query.set('q', params.q);
         if (params.tag) query.set('tag', params.tag);
-        if (params.status) query.set('status', params.status);
         if (params.author) query.set('author', params.author);
         const res = await fetch(`${API_BASE}/api/search?${query.toString()}`);
         if (!res.ok) throw new Error('Lỗi tìm kiếm');

@@ -105,22 +105,6 @@
                     <label class="form-label">Tác giả</label>
                     <input type="text" id="edit-comic-author" class="form-control">
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Loại truyện</label>
-                        <select id="edit-comic-type" class="form-control">
-                            <option value="multi">Nhiều chapter</option>
-                            <option value="oneshot">Oneshot</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Trạng thái</label>
-                        <select id="edit-comic-status" class="form-control">
-                            <option value="ongoing">Đang tiến hành</option>
-                            <option value="completed">Hoàn thành</option>
-                        </select>
-                    </div>
-                </div>
                 <div class="form-group">
                     <label class="form-label">Tags / Thể loại</label>
                     <div id="edit-tags-container"></div>
@@ -228,13 +212,6 @@
             try {
                 currentComic = await api.getComic(comicId);
                 const coverUrl = api.getCoverUrl(currentComic.cover_filename);
-                const statusBadge = currentComic.status === 'ongoing'
-                    ? '<span class="badge badge-ongoing">Đang tiến hành</span>'
-                    : '<span class="badge badge-completed">Hoàn thành</span>';
-                const typeBadge = currentComic.type === 'oneshot'
-                    ? '<span class="badge badge-oneshot" style="position: static;">Oneshot</span>'
-                    : '<span class="badge" style="background: rgba(255,255,255,0.1); color: var(--text-muted);">Nhiều chương</span>';
-
                 const tagsHtml = (currentComic.tags || []).map(t => `<span class="tag-chip" style="font-size: 11px; padding: 3px 8px;">${t}</span>`).join('');
                 const noteHtml = currentComic.personal_note 
                     ? `<div style="background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2); border-radius: 8px; padding: 10px 14px; margin-top: 14px; font-size: 13px; color: #c7d2fe;">📝 <b>Ghi chú:</b> ${currentComic.personal_note}</div>`
@@ -246,12 +223,11 @@
                             <img src="${coverUrl}" alt="${currentComic.title}" class="detail-cover" referrerpolicy="no-referrer" onerror="this.src='rem.jpg'">
                         </div>
                         <div class="detail-info">
-                            <h1 style="font-size: 24px; font-weight: 800; color: var(--text-main); margin-bottom: 8px;">${currentComic.title}</h1>
-                            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 12px;">Tác giả: <span style="color: var(--text-main); font-weight: 500;">${currentComic.author || 'Chưa rõ'}</span></p>
-                            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
-                                ${statusBadge}
-                                ${typeBadge}
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                <span class="badge" style="background: rgba(99, 102, 241, 0.15); color: #a5b4fc; font-family: monospace;">#${currentComic.id}</span>
+                                <h1 style="font-size: 24px; font-weight: 800; color: var(--text-main);">${currentComic.title}</h1>
                             </div>
+                            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 12px;">Tác giả: <span style="color: var(--text-main); font-weight: 500;">${currentComic.author || 'Chưa rõ'}</span></p>
                             <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
                                 ${tagsHtml || '<span style="color: var(--text-dim); font-size: 12px;">Chưa có tag nào</span>'}
                             </div>
@@ -303,8 +279,6 @@
             if (!currentComic) return;
             document.getElementById('edit-comic-title').value = currentComic.title;
             document.getElementById('edit-comic-author').value = currentComic.author || '';
-            document.getElementById('edit-comic-type').value = currentComic.type;
-            document.getElementById('edit-comic-status').value = currentComic.status;
             document.getElementById('edit-comic-note').value = currentComic.personal_note || '';
 
             if (!editTagsInput) {
@@ -321,8 +295,6 @@
                 await api.updateComic(comicId, {
                     title: document.getElementById('edit-comic-title').value.trim(),
                     author: document.getElementById('edit-comic-author').value.trim() || undefined,
-                    type: document.getElementById('edit-comic-type').value,
-                    status: document.getElementById('edit-comic-status').value,
                     tags: editTagsInput.getTags(),
                     personal_note: document.getElementById('edit-comic-note').value.trim() || undefined
                 });

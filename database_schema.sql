@@ -1,21 +1,23 @@
 -- =========================================================================
--- HManga-library Database Schema
+-- HManga-library Database Schema (Simplified: Multi-only, No Status)
 -- Chạy script này trên Supabase SQL Editor
 -- =========================================================================
 
--- 1. Bảng comics
+-- 1. Bảng comics (ID tự tăng theo thứ tự thêm vào: 1, 2, 3...)
 CREATE TABLE IF NOT EXISTS public.comics (
     id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     author VARCHAR(255),
-    type VARCHAR(20) NOT NULL DEFAULT 'multi',
-    status VARCHAR(20) NOT NULL DEFAULT 'ongoing',
     cover_filename VARCHAR(100),
     personal_note TEXT,
     source_url TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Nếu database đã có bảng comics từ trước, gỡ 2 cột type và status:
+ALTER TABLE public.comics DROP COLUMN IF EXISTS type;
+ALTER TABLE public.comics DROP COLUMN IF EXISTS status;
 
 -- 2. Bảng tags
 CREATE TABLE IF NOT EXISTS public.tags (
@@ -43,13 +45,15 @@ CREATE TABLE IF NOT EXISTS public.chapters (
     UNIQUE (comic_id, chapter_number)
 );
 
--- Indexes
+-- Indexes tối ưu tìm kiếm
 CREATE INDEX IF NOT EXISTS idx_comics_title ON public.comics(title);
-CREATE INDEX IF NOT EXISTS idx_comics_status ON public.comics(status);
-CREATE INDEX IF NOT EXISTS idx_comics_type ON public.comics(type);
 CREATE INDEX IF NOT EXISTS idx_chapters_comic_id ON public.chapters(comic_id);
 CREATE INDEX IF NOT EXISTS idx_chapters_number ON public.chapters(comic_id, chapter_number);
 CREATE INDEX IF NOT EXISTS idx_tags_name ON public.tags(name);
+
+-- Gỡ index cũ nếu có
+DROP INDEX IF EXISTS idx_comics_status;
+DROP INDEX IF EXISTS idx_comics_type;
 
 -- Trigger: auto-update updated_at
 CREATE OR REPLACE FUNCTION update_modified_column()

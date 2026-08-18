@@ -1,10 +1,8 @@
 from core.database import supabase
 
-def search_comics(q: str = None, tag: str = None, status: str = None, author: str = None):
-    query = supabase.table("comics").select("id, title, author, type, status, cover_filename, updated_at")
+def search_comics(q: str = None, tag: str = None, author: str = None):
+    query = supabase.table("comics").select("id, title, author, cover_filename, updated_at").order("id", desc=False)
     
-    if status:
-        query = query.eq("status", status)
     if author:
         query = query.ilike("author", f"%{author}%")
     if q:

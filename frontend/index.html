@@ -27,15 +27,9 @@
                 <p class="page-subtitle" id="comic-count">Đang tải danh sách...</p>
             </div>
             
-            <!-- Quick Search & Filter Controls -->
-            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                <input type="text" id="quick-search" class="form-control" placeholder="Tìm tên truyện..." style="width: 220px;">
-                
-                <div style="display: flex; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 2px;">
-                    <button class="btn btn-sm btn-filter active" data-status="" style="color: #fff; background: var(--primary);">Tất cả</button>
-                    <button class="btn btn-sm btn-filter" data-status="ongoing" style="color: var(--text-muted); background: transparent;">Đang tiến hành</button>
-                    <button class="btn btn-sm btn-filter" data-status="completed" style="color: var(--text-muted); background: transparent;">Hoàn thành</button>
-                </div>
+            <!-- Quick Search Control -->
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <input type="text" id="quick-search" class="form-control" placeholder="Tìm tên truyện..." style="width: 260px;">
             </div>
         </div>
 
@@ -49,7 +43,6 @@
 
     <script src="app.js"></script>
     <script>
-        let currentStatus = '';
         let searchQuery = '';
         let debounceTimer;
 
@@ -58,14 +51,14 @@
             const countEl = document.getElementById('comic-count');
             
             try {
-                const comics = await api.getComics({ status: currentStatus, q: searchQuery });
+                const comics = await api.getComics({ q: searchQuery });
                 countEl.textContent = `${comics.length} bộ truyện trong thư viện`;
 
                 if (comics.length === 0) {
                     grid.innerHTML = `
                         <div style="grid-column: 1 / -1; text-align: center; padding: 80px 20px;">
-                            <p style="font-size: 18px; color: var(--text-muted); margin-bottom: 8px;">Chưa có bộ truyện nào phù hợp</p>
-                            <p style="font-size: 14px; color: var(--text-dim); margin-bottom: 20px;">Bạn có thể bắt đầu bằng cách thêm một bộ truyện mới từ hentaifox</p>
+                            <p style="font-size: 18px; color: var(--text-muted); margin-bottom: 8px;">Chưa có bộ truyện nào</p>
+                            <p style="font-size: 14px; color: var(--text-dim); margin-bottom: 20px;">Bắt đầu bằng cách thêm một bộ truyện mới từ hentaifox</p>
                             <a href="add.html" class="btn btn-primary">+ Thêm truyện ngay</a>
                         </div>
                     `;
@@ -74,13 +67,6 @@
 
                 grid.innerHTML = comics.map(comic => {
                     const coverUrl = api.getCoverUrl(comic.cover_filename);
-                    const statusBadge = comic.status === 'ongoing' 
-                        ? '<span class="badge badge-status badge-ongoing">Đang tiến hành</span>'
-                        : '<span class="badge badge-status badge-completed">Hoàn thành</span>';
-                    const oneshotBadge = comic.type === 'oneshot' 
-                        ? '<span class="badge badge-oneshot">Oneshot</span>' 
-                        : '';
-
                     const tagsHtml = (comic.tags || []).slice(0, 3).map(t => 
                         `<span class="tag-chip">${t}</span>`
                     ).join('') + ((comic.tags && comic.tags.length > 3) ? `<span class="tag-chip">+${comic.tags.length - 3}</span>` : '');
@@ -89,8 +75,6 @@
                         <a href="detail.html?id=${comic.id}" class="comic-card">
                             <div class="card-thumb-wrapper">
                                 <img src="${coverUrl}" alt="${comic.title}" class="card-thumb" referrerpolicy="no-referrer" onerror="this.src='rem.jpg'">
-                                ${statusBadge}
-                                ${oneshotBadge}
                             </div>
                             <div class="card-body">
                                 <div class="card-title" title="${comic.title}">${comic.title}</div>
@@ -109,20 +93,6 @@
                 `;
             }
         }
-
-        // Filter button clicks
-        document.querySelectorAll('.btn-filter').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.btn-filter').forEach(b => {
-                    b.style.background = 'transparent';
-                    b.style.color = 'var(--text-muted)';
-                });
-                btn.style.background = 'var(--primary)';
-                btn.style.color = '#fff';
-                currentStatus = btn.getAttribute('data-status');
-                loadComics();
-            });
-        });
 
         // Search input
         document.getElementById('quick-search').addEventListener('input', (e) => {

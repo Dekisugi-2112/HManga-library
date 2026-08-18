@@ -4,7 +4,7 @@
 
 ## 1. MÔ TẢ DỰ ÁN & MỤC TIÊU
 - **Tên dự án**: HManga-library
-- **Mục đích**: Website cá nhân phục vụ việc lưu trữ, quản lý và đọc truyện tranh (manga/manhwa/manhua) được chọn lọc từ các nguồn bên ngoài (hiện tại tối ưu cho `hentaifox.com`).
+- **Mục đích**: Website cá nhân phục vụ việc lưu trữ, quản lý và đọc truyện tranh (manga/manhwa/manhua) được chọn lọc từ các nguồn bên ngoài (tối ưu cho `hentaifox.com`).
 - **Đối tượng sử dụng**: 1 người dùng duy nhất (không cần hệ thống xác thực / auth / đăng nhập).
 - **Mô hình kiến trúc**: **Modular Monolith** — Backend phân chia rõ theo từng domain module nhưng chạy trong một service FastAPI duy nhất; Frontend sử dụng HTML5 + CSS3 + Vanilla JavaScript thuần (Dark theme, siêu nhẹ, không cần Node.js, được serve trực tiếp bởi FastAPI).
 
@@ -66,11 +66,11 @@ HManga-library/
 │       └── search/                # Tìm kiếm và lọc nâng cao
 │
 ├── frontend/
-│   ├── index.html                 # Trang chủ: Lưới truyện, lọc trạng thái, tìm nhanh
+│   ├── index.html                 # Trang chủ: Lưới truyện, tìm nhanh
 │   ├── add.html                   # Thêm truyện: URL Checker + Check trùng + Form
 │   ├── detail.html                # Chi tiết truyện: Sửa metadata, sửa/thêm/xóa chapter
 │   ├── reader.html                # Trình đọc truyện: 2 chế độ (cuộn dọc/từng trang), điều hướng
-│   ├── search.html                # Tìm kiếm & lọc kết hợp đa tiêu chí
+│   ├── search.html                # Tìm kiếm theo tên, tác giả, tags
 │   ├── style.css                  # Giao diện Dark theme hiện đại, responsive
 │   ├── app.js                     # API Client, Tag Input, Toast Notification
 │   └── rem.jpg                    # Ảnh placeholder khi lỗi bìa
@@ -82,6 +82,7 @@ HManga-library/
 ├── README.md                      # Hướng dẫn cài đặt và vận hành
 ├── .env                           # File cấu hình bí mật (Supabase Keys)
 ├── .env.example                   # File mẫu cấu hình biến môi trường
+└── .gitignore                     # Bỏ qua file nhạy cảm, cache, venv
 ```
 
 ---
@@ -89,13 +90,11 @@ HManga-library/
 ## 5. DATABASE SCHEMA (SUPABASE POSTGRESQL)
 
 ```sql
--- 1. Bảng truyện
+-- 1. Bảng truyện (ID tự tăng theo thứ tự thêm vào: 1, 2, 3...)
 CREATE TABLE public.comics (
     id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     author VARCHAR(255),
-    type VARCHAR(20) NOT NULL DEFAULT 'multi',       -- 'multi' hoặc 'oneshot'
-    status VARCHAR(20) NOT NULL DEFAULT 'ongoing',   -- 'ongoing' hoặc 'completed'
     cover_filename VARCHAR(100),                     -- ví dụ: "4029076.jpg"
     personal_note TEXT,                              -- ghi chú cá nhân
     source_url TEXT,                                 -- link tham khảo gốc
@@ -121,7 +120,7 @@ CREATE TABLE public.chapters (
     id SERIAL PRIMARY KEY,
     comic_id INT NOT NULL REFERENCES public.comics(id) ON DELETE CASCADE,
     chapter_number NUMERIC(6,1) NOT NULL,
-    title VARCHAR(255),                              -- Oneshot đặt là 'oneshot'
+    title VARCHAR(255),                              -- Tùy chọn tên chương
     base_url TEXT NOT NULL,                          -- URL ảnh trang 1
     total_pages INT NOT NULL,                        -- Số trang của chapter
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -134,32 +133,31 @@ CREATE TABLE public.chapters (
 
 ## 6. DANH SÁCH TÍNH NĂNG ĐÃ HOÀN THÀNH (FEATURES IMPLEMENTED)
 
-### 6.1. Thêm truyện thông minh (`/comics/add`)
+### 6.1. Thêm truyện thông minh (`/add.html`)
 - **Tích hợp `UrlChecker`**:
-  - Dán một URL bất kỳ từ hentaifox (VD: `https://i3.hentaifox.com/004/4029076/1t.jpg`).
-  - Hệ thống tự bóc tách `gallery_id`, số trang, hậu tố (`t`), đuôi ảnh (`.jpg`, `.webp`).
-  - Ô nhập **Tổng số trang** cho phép nhập số tự do, không bị giới hạn cứng và không bị reset về 1.
-  - Nút **"🧪 Test tải ảnh"**: Thử nghiệm tải trước 3 trang đầu bằng trình duyệt có `no-referrer` để đảm bảo link hoạt động.
-- **Tự động kiểm tra trùng lặp (Gallery ID Check)**:
-  - Khi dán URL, hệ thống tra cứu trong Database xem `gallery_id` đã tồn tại chưa.
-  - **Nếu đã có**: Hiện cảnh báo và chuyển thành form **"Thêm chương mới vào bộ truyện này"**, tránh tạo trùng lặp bộ truyện.
-  - **Nếu chưa có**: Hiển thị form nhập thông tin (Tên truyện, Tác giả, Loại `multi`/`oneshot`, Trạng thái, Tag tự do, Ghi chú).
-- **Tự động tải Cover**: Tải ảnh trang đầu tiên về máy local lưu tên `{gallery_id}.{ext}`.
+  - Dán URL từ hentaifox (VD: `https://i3.hentaifox.com/004/4029076/1t.jpg`).
+  - Tự động bóc tách `gallery_id`, số trang, hậu tố (`t`), đuôi ảnh (`.jpg`, `.webp`).
+  - Nhập **Tổng số trang** tự do, không bị reset.
+  - Nút **"🧪 Test tải 3 trang đầu"** để kiểm tra link ảnh.
+- **Kiểm tra trùng lặp (`gallery_id`)**:
+  - Tra cứu DB theo `gallery_id`. Nếu đã có, cho phép bấm **"Thêm chương mới vào bộ này"**.
+  - Nếu chưa có, điền tên truyện, tác giả, tags, ghi chú và lưu.
+- **Tự động tải Cover**: Tải ảnh trang 1 về `cover-images/{gallery_id}.jpg`.
 
-### 6.2. Trang chủ (`/`)
-- Hiển thị danh mục truyện dạng lưới thẻ card Dark mode sang trọng.
-- Thẻ truyện hiển thị: Ảnh bìa, Badge trạng thái (*Đang tiến hành* / *Hoàn thành*), Badge *Oneshot*, Tên truyện, Tác giả, và các Tag thu nhỏ.
-- Bộ lọc nhanh theo trạng thái (*Tất cả*, *Đang tiến hành*, *Hoàn thành*) và thanh tìm kiếm nhanh.
+### 6.2. Trang chủ (`/index.html`)
+- Hiển thị toàn bộ truyện dạng lưới card Dark mode, sắp xếp theo ID thêm vào (1, 2, 3...).
+- Thẻ truyện hiển thị: Ảnh bìa, Tên truyện, Tác giả, và các Tag.
+- Thanh tìm kiếm nhanh theo tên truyện.
 
-### 6.3. Chi tiết truyện & Quản lý chương (`/comics/[id]`)
-- Xem toàn bộ metadata, ảnh bìa, các tag thể loại và ghi chú cá nhân.
-- Danh sách các chương sắp xếp theo thứ tự số chương tăng dần.
-- **Modal Sửa thông tin truyện (Edit Comic)**: Thay đổi tên, tác giả, trạng thái, chỉnh sửa danh sách tag, cập nhật ghi chú.
-- **Modal Sửa chương (Edit Chapter)**: Đổi số chương (ví dụ chuyển chương 1 thành 2, 1.5...) và đổi tên chương.
-- **Modal Thêm chương mới (Add Chapter)**: Tích hợp sẵn `UrlChecker` để thêm chương trực tiếp cho bộ truyện này.
+### 6.3. Chi tiết truyện & Quản lý chương (`/detail.html`)
+- Xem metadata, ID thứ tự truyện, ảnh bìa, các tag thể loại và ghi chú cá nhân.
+- Danh sách các chương sắp xếp theo thứ tự số chương tăng dần (`Ch.1`, `Ch.2`...).
+- **Modal Sửa thông tin truyện**: Sửa tên, tác giả, chỉnh sửa danh sách tag, cập nhật ghi chú.
+- **Modal Sửa chương**: Đổi số chương (ví dụ chuyển chương 1 thành 2, 1.5...) và đổi tên chương.
+- **Modal Thêm chương mới**: Tích hợp `UrlChecker` để thêm chương trực tiếp cho bộ truyện này.
 - **Xóa chương & Xóa truyện**: Có xác nhận an toàn; khi xóa truyện sẽ tự động xóa file cover local.
 
-### 6.4. Trình đọc truyện chuyên dụng (`/chapter/[id]`)
+### 6.4. Trình đọc truyện chuyên dụng (`/reader.html`)
 - **2 chế độ đọc linh hoạt**:
   - **📜 Cuộn dọc (Webtoon style)**: Tải toàn bộ ảnh theo chiều dọc, hỗ trợ lazy-load.
   - **📄 Theo từng trang (Manga style)**: Hiển thị 1 ảnh giữa màn hình, có nút Trang trước / Trang sau, hỗ trợ phím mũi tên bàn phím (`←` / `→`).
@@ -169,8 +167,8 @@ CREATE TABLE public.chapters (
   - Nút quay lại trang thông tin chi tiết của bộ truyện.
 - Hiển thị tên truyện, số chương, tổng số trang trên header cố định.
 
-### 6.5. Tìm kiếm & Lọc nâng cao (`/search`)
-- Tìm kiếm đồng thời theo: Tên truyện, Tên tác giả, Tag/Thể loại (từ khóa tự do), Trạng thái.
+### 6.5. Tìm kiếm & Lọc (`/search.html`)
+- Tìm kiếm đồng thời theo: Tên truyện, Tác giả, Tag/Thể loại (từ khóa tự do).
 - Trả về kết quả dưới dạng lưới thẻ truyện trực quan.
 
 ### 6.6. Tag Input thông minh
@@ -186,18 +184,11 @@ CREATE TABLE public.chapters (
 
 ## 7. HƯỚNG DẪN VẬN HÀNH NHANH
 
-### Khởi chạy Backend (Port 8000)
+### Khởi chạy Server (Port 8000)
 ```powershell
 cd D:\AI_My_Project\HManga-library\backend
 pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-### Khởi chạy Frontend (Port 3000)
-```powershell
-cd D:\AI_My_Project\HManga-library\frontend
-npm install
-npm run dev
-```
-
-Truy cập: **`http://localhost:3000`**
+Truy cập: **`http://localhost:8000`**

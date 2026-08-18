@@ -6,8 +6,8 @@ import modules.comics.service as service
 router = APIRouter(prefix="/api/comics", tags=["comics"])
 
 @router.get("", response_model=List[ComicResponse])
-def get_comics(status: Optional[str] = None, tag: Optional[str] = None, q: Optional[str] = None):
-    return service.get_all_comics(status=status, tag=tag, q=q)
+def get_comics(tag: Optional[str] = None, q: Optional[str] = None):
+    return service.get_all_comics(tag=tag, q=q)
 
 @router.get("/{comic_id}", response_model=ComicDetailResponse)
 def get_comic(comic_id: int):

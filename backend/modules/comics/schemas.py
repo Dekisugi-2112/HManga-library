@@ -5,8 +5,6 @@ from datetime import datetime
 class ComicBase(BaseModel):
     title: str
     author: Optional[str] = None
-    type: str = "multi"
-    status: str = "ongoing"
     source_url: Optional[str] = None
     personal_note: Optional[str] = None
     tags: List[str] = []
@@ -14,11 +12,20 @@ class ComicBase(BaseModel):
 class ComicCreate(ComicBase):
     pass
 
-class ComicUpdate(ComicBase):
-    pass
+class ComicUpdate(BaseModel):
+    title: Optional[str] = None
+    author: Optional[str] = None
+    source_url: Optional[str] = None
+    personal_note: Optional[str] = None
+    tags: Optional[List[str]] = None
 
-class ComicResponse(ComicBase):
+class ComicResponse(BaseModel):
     id: int
+    title: str
+    author: Optional[str] = None
+    source_url: Optional[str] = None
+    personal_note: Optional[str] = None
+    tags: List[str] = []
     cover_filename: Optional[str] = None
     created_at: datetime
     updated_at: datetime
