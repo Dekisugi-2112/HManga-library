@@ -101,16 +101,13 @@ CREATE TABLE public.comics (
     title VARCHAR(255) NOT NULL,
     author VARCHAR(255),
     cover_filename VARCHAR(100),                     -- ví dụ: "4029076.jpg"
-    source_url TEXT,                                 -- link tham khảo gốc
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    source_url TEXT                                  -- link tham khảo gốc
 );
 
 -- 2. Bảng thể loại (genres)
 CREATE TABLE public.genres (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(100) UNIQUE NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    name VARCHAR(100) UNIQUE NOT NULL
 );
 
 -- 3. Bảng liên kết truyện & thể loại (Many-to-Many)
@@ -128,8 +125,6 @@ CREATE TABLE public.chapters (
     title VARCHAR(255),                              -- Tùy chọn tên chương
     base_url TEXT NOT NULL,                          -- URL ảnh trang 1
     total_pages INT NOT NULL,                        -- Số trang của chapter
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE (comic_id, chapter_number)
 );
 ```

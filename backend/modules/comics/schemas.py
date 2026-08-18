@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 from typing import List, Optional
-from datetime import datetime
 
 class ComicBase(BaseModel):
     title: str
@@ -24,8 +23,6 @@ class ComicResponse(BaseModel):
     source_url: Optional[str] = None
     genres: List[str] = []
     cover_filename: Optional[str] = None
-    created_at: datetime
-    updated_at: datetime
 
     class Config:
         from_attributes = True
