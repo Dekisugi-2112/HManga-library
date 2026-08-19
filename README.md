@@ -135,3 +135,18 @@ Schema SQL nằm trong file `database_schema.sql` gồm:
    ```
 4. Frontend tải ảnh trực tiếp qua CDN nguồn với thuộc tính `referrerpolicy="no-referrer"`.
 5. **Chỉ ảnh bìa** được tải về local `cover-images/` đặt theo `gallery_id` (VD: `4029076.jpg`). Nếu ảnh lỗi, tự động dùng ảnh dự phòng `rem.jpg`.
+
+---
+
+## 🔄 Khôi phục dữ liệu từ Cache (Disaster Recovery)
+
+Nếu bạn lỡ xóa database Supabase hoặc tạo một project Supabase hoàn toàn mới:
+
+1. Tạo file `.env` chứa URL và Service Role Key của database mới.
+2. Chạy file `database_schema.sql` trong **Supabase SQL Editor** để tạo các bảng.
+3. Mở terminal và chạy lệnh:
+   ```powershell
+   cd D:\AI_My_Project\HManga-library\backend
+   python restore_from_cache.py
+   ```
+Toàn bộ thể loại, truyện tranh, các chương và ảnh bìa trong `comics_cache.json` sẽ được tự động phục hồi 100%!
