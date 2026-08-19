@@ -1,3 +1,14 @@
+<!--
+  HManga Library — Trang Chi Tiết Bộ Truyện (detail.html)
+  =======================================================
+  Nhiệm vụ:
+  1. Hiển thị thông tin tổng quan của bộ truyện: Ảnh bìa, Tên truyện, Tác giả, Thể loại.
+  2. Hiển thị danh sách các chương (Chapters) kèm số trang và liên kết vào trình đọc (reader.html).
+  3. Cung cấp Modal Sửa thông tin truyện (Đổi tên, Tác giả với AuthorAutocomplete, Thể loại với GenreSelector).
+  4. Cung cấp Modal Thêm chương mới cho bộ truyện.
+  5. Cung cấp Modal Chỉnh sửa chương (Đổi số thứ tự chương, đổi tên chương).
+  6. Cung cấp chức năng Xóa chương và Xóa vĩnh viễn toàn bộ bộ truyện.
+-->
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -6,6 +17,7 @@
     <title>Chi Tiết Truyện — HManga Library</title>
     <!-- Favicon website -->
     <link rel="icon" type="image/jpeg" href="rem.jpg">
+    <!-- Stylesheet dùng chung -->
     <link rel="stylesheet" href="style.css">
     <style>
         .detail-header {
@@ -63,24 +75,29 @@
     </style>
 </head>
 <body>
-    <!-- Navbar -->
+    <!-- 1. Thanh điều hướng trên cùng (Navbar) -->
     <nav class="navbar">
         <div class="nav-container">
             <a href="index.html" class="nav-brand">
                 <img src="rem.jpg" alt="HManga Logo" class="nav-logo">
-                <span>HManga</span>
+                <span class="nav-brand-text">HManga</span>
             </a>
+            <!-- Thanh tìm kiếm nhanh trên Navbar -->
             <div class="nav-center">
-                <a href="search.html" class="nav-link nav-search-pill">
-                    <img src="data-icon/search.png" alt="Tìm kiếm" class="nav-icon">
-                    <span>Tìm kiếm</span>
-                </a>
+                <form class="quick-search-form" id="quickSearchForm" action="index.html" method="GET" autocomplete="off">
+                    <div class="quick-search-wrapper">
+                        <img src="data-icon/search.png" alt="Search" class="quick-search-icon">
+                        <input type="search" name="s" id="inputQuickSearch" class="quick-search-input" placeholder="Search..." autocomplete="off">
+                    </div>
+                    <a href="search.html" id="btnGoAdvanced" class="btn-go-advanced" title="Advanced Search">
+                        <svg class="bolt-icon" viewBox="0 0 24 24">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                        </svg>
+                        <span>Advanced<span class="btn-text-hide-mobile"> Search</span></span>
+                    </a>
+                </form>
             </div>
             <div class="nav-links">
-                <a href="index.html" class="nav-link">
-                    <img src="data-icon/home.png" alt="Trang chủ" class="nav-icon">
-                    <span>Trang chủ</span>
-                </a>
                 <a href="genres.html" class="nav-link">🏷️ Thể loại</a>
                 <a href="authors.html" class="nav-link">✍️ Tác giả</a>
                 <a href="add.html" class="btn-add">
@@ -91,13 +108,14 @@
         </div>
     </nav>
 
-    <!-- Main Content -->
+    <!-- 2. Khu vực nội dung chính (Main Content) -->
     <main class="main-content" style="max-width: 900px;">
+        <!-- Khung hiển thị thông tin chi tiết bộ truyện -->
         <div id="comic-detail-content">
             <div style="text-align: center; padding: 60px 0; color: var(--text-dim);">⏳ Đang tải thông tin bộ truyện...</div>
         </div>
 
-        <!-- CHAPTER LIST CARD -->
+        <!-- Khung hiển thị danh sách các chương (Chapters) -->
         <div class="card" id="chapters-card" style="display: none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                 <h2 style="font-size: 18px; font-weight: 700; color: var(--text-main);" id="chapters-heading">Danh Sách Chương (0)</h2>
@@ -119,10 +137,12 @@
                     <label class="form-label">Tên truyện *</label>
                     <input type="text" id="edit-comic-title" class="form-control" required>
                 </div>
+                <!-- Gợi ý tác giả thông minh -->
                 <div class="form-group">
                     <label class="form-label">Tác giả</label>
                     <input type="text" id="edit-comic-author" class="form-control" placeholder="Gõ để tìm tác giả có sẵn hoặc tạo tác giả mới..." autocomplete="off">
                 </div>
+                <!-- Chọn thể loại dạng Chips -->
                 <div class="form-group">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                         <label class="form-label" style="margin: 0;">Chọn thể loại:</label>
@@ -200,22 +220,29 @@
         </div>
     </div>
 
+    <!-- Nạp file JavaScript tiện ích dùng chung -->
     <script src="app.js"></script>
     <script>
+        // Lấy ID bộ truyện từ Query Parameter (VD: detail.html?id=1)
         const urlParams = new URLSearchParams(window.location.search);
         const comicId = parseInt(urlParams.get('id'), 10);
         let currentComic = null;
         let editGenreSelector = null;
         let editAuthorAutocomplete = null;
 
+        /** Đóng một modal popup theo ID */
         function closeModal(id) {
             document.getElementById(id).classList.remove('active');
         }
 
+        /** Mở một modal popup theo ID */
         function openModal(id) {
             document.getElementById(id).classList.add('active');
         }
 
+        /**
+         * Tải toàn bộ thông tin chi tiết của bộ truyện và các chương từ Backend API
+         */
         async function loadComicDetail() {
             if (!comicId) {
                 document.getElementById('comic-detail-content').innerHTML = `
@@ -228,10 +255,12 @@
             }
 
             try {
+                // Gọi API lấy chi tiết bộ truyện
                 currentComic = await api.getComic(comicId);
                 const coverUrl = api.getCoverUrl(currentComic.cover_filename);
                 const genresHtml = (currentComic.genres || []).map(g => `<a href="genres.html" class="tag-chip" style="font-size: 11px; padding: 3px 8px; text-decoration: none;">🏷️ ${g}</a>`).join('');
 
+                // Render phần Header chi tiết truyện
                 document.getElementById('comic-detail-content').innerHTML = `
                     <div class="detail-header">
                         <div class="detail-cover-box">
@@ -254,7 +283,7 @@
                     </div>
                 `;
 
-                // Render Chapters
+                // Render danh sách các Chapters đã sắp xếp
                 const chapters = [...(currentComic.chapters || [])].sort((a, b) => a.chapter_number - b.chapter_number);
                 document.getElementById('chapters-heading').textContent = `Danh Sách Chương (${chapters.length})`;
                 const chapContainer = document.getElementById('chapter-list-container');
@@ -288,26 +317,28 @@
             }
         }
 
-        // === EDIT COMIC ===
+        // ==================== SỬA THÔNG TIN BỘ TRUYỆN ====================
+        /** Mở modal chỉnh sửa thông tin truyện */
         async function openEditComicModal() {
             if (!currentComic) return;
             document.getElementById('edit-comic-title').value = currentComic.title;
             document.getElementById('edit-comic-author').value = currentComic.author || '';
 
+            // Khởi tạo component chọn thể loại
             if (!editGenreSelector) {
                 editGenreSelector = new GenreSelectorComponent('edit-genres-container', [], currentComic.genres || []);
             } else {
                 editGenreSelector.setSelectedGenres(currentComic.genres || []);
             }
 
-            // Load available genres
+            // Nạp danh sách thể loại từ server
             try {
                 const genres = await api.getGenres();
                 editGenreSelector.setAvailableGenres(genres);
                 editGenreSelector.setSelectedGenres(currentComic.genres || []);
             } catch {}
 
-            // Load author autocomplete
+            // Nạp danh sách tác giả cho bộ autocomplete
             if (!editAuthorAutocomplete) {
                 editAuthorAutocomplete = new AuthorAutocompleteComponent('edit-comic-author');
             }
@@ -319,6 +350,7 @@
             openModal('modal-edit-comic');
         }
 
+        // Lắng nghe Submit form sửa thông tin truyện
         document.getElementById('form-edit-comic').addEventListener('submit', async (e) => {
             e.preventDefault();
             try {
@@ -329,15 +361,17 @@
                 });
                 closeModal('modal-edit-comic');
                 showToast('Đã cập nhật thông tin bộ truyện!', 'success');
-                loadComicDetail();
+                loadComicDetail(); // Nạp lại trang chi tiết
             } catch (err) {
                 showToast(err.message, 'error');
             }
         });
 
-        // === ADD CHAPTER ===
+        // ==================== THÊM CHƯƠNG MỚI ====================
+        /** Mở modal thêm chương mới */
         document.getElementById('btn-open-add-chapter').addEventListener('click', () => {
             const chapters = currentComic?.chapters || [];
+            // Tự động tính số chương tiếp theo (VD: max + 1)
             const nextNum = chapters.length > 0 ? Math.max(...chapters.map(c => c.chapter_number)) + 1 : 1;
             document.getElementById('new-chap-num').value = nextNum;
             document.getElementById('new-chap-url').value = '';
@@ -346,6 +380,7 @@
             openModal('modal-add-chapter');
         });
 
+        // Bóc tách URL khi người dùng bấm nút "Bóc tách"
         document.getElementById('btn-parse-new-chap').addEventListener('click', () => {
             const url = document.getElementById('new-chap-url').value.trim();
             const parsed = parseHentaifoxUrl(url);
@@ -356,6 +391,7 @@
             }
         });
 
+        // Lắng nghe Submit form thêm chương mới
         document.getElementById('form-add-chapter').addEventListener('submit', async (e) => {
             e.preventDefault();
             const url = document.getElementById('new-chap-url').value.trim();
@@ -378,7 +414,8 @@
             }
         });
 
-        // === EDIT CHAPTER ===
+        // ==================== SỬA CHƯƠNG ====================
+        /** Mở modal chỉnh sửa một chương */
         function openEditChapterModal(id, num, title) {
             document.getElementById('edit-chap-id').value = id;
             document.getElementById('edit-chap-num').value = num;
@@ -386,6 +423,7 @@
             openModal('modal-edit-chapter');
         }
 
+        // Lắng nghe Submit form sửa chương
         document.getElementById('form-edit-chapter').addEventListener('submit', async (e) => {
             e.preventDefault();
             const chapId = parseInt(document.getElementById('edit-chap-id').value, 10);
@@ -405,7 +443,8 @@
             }
         });
 
-        // === DELETE ===
+        // ==================== XÓA CHƯƠNG & XÓA BỘ TRUYỆN ====================
+        /** Xác nhận và xóa một chương */
         async function confirmDeleteChapter(chapId) {
             if (!confirm('Bạn có chắc chắn muốn xóa chương này không?')) return;
             try {
@@ -417,6 +456,7 @@
             }
         }
 
+        /** Xác nhận và xóa hoàn toàn toàn bộ bộ truyện */
         async function confirmDeleteComic() {
             if (!confirm(`Bạn có chắc chắn muốn xóa hoàn toàn bộ truyện "${currentComic.title}" và toàn bộ các chương không?`)) return;
             try {
@@ -428,7 +468,7 @@
             }
         }
 
-        // Initialize
+        // Nạp dữ liệu khi mở trang
         loadComicDetail();
     </script>
 </body>

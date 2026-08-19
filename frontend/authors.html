@@ -1,3 +1,12 @@
+<!--
+  HManga Library — Trang Quản Lý Tác Giả (authors.html)
+  =====================================================
+  Nhiệm vụ:
+  1. Hiển thị danh sách tất cả các tác giả có trong thư viện kèm số lượng bộ truyện.
+  2. Cung cấp chức năng Đổi tên tác giả hàng loạt (Batch Rename):
+     - Khi đổi tên tác giả, tất cả các bộ truyện của tác giả đó sẽ tự động được cập nhật tên mới.
+  3. Khi click vào một tác giả -> Hiển thị toàn bộ các tác phẩm của tác giả đó ở phía dưới.
+-->
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -6,14 +15,17 @@
     <title>Quản Lý Tác Giả — HManga Library</title>
     <!-- Favicon website -->
     <link rel="icon" type="image/jpeg" href="rem.jpg">
+    <!-- Stylesheet dùng chung -->
     <link rel="stylesheet" href="style.css">
     <style>
+        /* Lưới hiển thị danh sách các thẻ tác giả */
         .author-manage-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
             gap: 12px;
             margin-top: 16px;
         }
+        /* Thẻ hiển thị một tác giả */
         .author-item-card {
             background: #090d16;
             border: 1px solid var(--border-color);
@@ -52,24 +64,29 @@
     </style>
 </head>
 <body>
-    <!-- Navbar -->
+    <!-- 1. Thanh điều hướng trên cùng (Navbar) -->
     <nav class="navbar">
         <div class="nav-container">
             <a href="index.html" class="nav-brand">
                 <img src="rem.jpg" alt="HManga Logo" class="nav-logo">
-                <span>HManga</span>
+                <span class="nav-brand-text">HManga</span>
             </a>
+            <!-- Thanh tìm kiếm nhanh trên Navbar -->
             <div class="nav-center">
-                <a href="search.html" class="nav-link nav-search-pill">
-                    <img src="data-icon/search.png" alt="Tìm kiếm" class="nav-icon">
-                    <span>Tìm kiếm</span>
-                </a>
+                <form class="quick-search-form" id="quickSearchForm" action="index.html" method="GET" autocomplete="off">
+                    <div class="quick-search-wrapper">
+                        <img src="data-icon/search.png" alt="Search" class="quick-search-icon">
+                        <input type="search" name="s" id="inputQuickSearch" class="quick-search-input" placeholder="Search..." autocomplete="off">
+                    </div>
+                    <a href="search.html" id="btnGoAdvanced" class="btn-go-advanced" title="Advanced Search">
+                        <svg class="bolt-icon" viewBox="0 0 24 24">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                        </svg>
+                        <span>Advanced<span class="btn-text-hide-mobile"> Search</span></span>
+                    </a>
+                </form>
             </div>
             <div class="nav-links">
-                <a href="index.html" class="nav-link">
-                    <img src="data-icon/home.png" alt="Trang chủ" class="nav-icon">
-                    <span>Trang chủ</span>
-                </a>
                 <a href="genres.html" class="nav-link">🏷️ Thể loại</a>
                 <a href="authors.html" class="nav-link active">✍️ Tác giả</a>
                 <a href="add.html" class="btn-add">
@@ -80,14 +97,15 @@
         </div>
     </nav>
 
-    <!-- Main Content -->
+    <!-- 2. Khu vực nội dung chính (Main Content) -->
     <main class="main-content">
+        <!-- Tiêu đề trang -->
         <div class="page-header">
             <h1 class="page-title">✍️ Quản Lý Tác Giả</h1>
             <p class="page-subtitle">Xem danh sách các tác giả trong thư viện, đổi tên hàng loạt hoặc xem các tác phẩm</p>
         </div>
 
-        <!-- Authors List Section -->
+        <!-- Khung hiển thị danh sách các tác giả -->
         <div class="card">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <h2 style="font-size: 16px; font-weight: 700; color: var(--text-main);" id="authors-count-heading">Danh Sách Tác Giả</h2>
@@ -98,7 +116,7 @@
             </div>
         </div>
 
-        <!-- Comics by Selected Author Section -->
+        <!-- Khu vực hiển thị danh sách truyện của tác giả được chọn -->
         <div id="author-comics-section" style="display: none; margin-top: 30px;">
             <div class="page-header" style="border-top: 1px solid var(--border-color); padding-top: 24px;">
                 <h2 class="page-title" style="font-size: 20px;">
@@ -110,7 +128,7 @@
         </div>
     </main>
 
-    <!-- Modal: Rename Author -->
+    <!-- Modal Popup: Đổi tên tác giả hàng loạt -->
     <div id="modal-rename-author" class="modal-overlay">
         <div class="modal-card">
             <div class="modal-header">
@@ -135,22 +153,28 @@
         </div>
     </div>
 
+    <!-- Nạp file JavaScript tiện ích dùng chung -->
     <script src="app.js"></script>
     <script>
         let allAuthors = [];
         let selectedAuthorName = null;
 
+        /**
+         * Tải danh sách toàn bộ tác giả từ Backend API và hiển thị lên giao diện
+         */
         async function loadAuthors() {
             const listEl = document.getElementById('authors-list');
             try {
                 allAuthors = await api.getAuthors();
                 document.getElementById('authors-count-heading').textContent = `Danh Sách Tác Giả (${allAuthors.length})`;
 
+                // Nếu chưa có tác giả nào
                 if (allAuthors.length === 0) {
                     listEl.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 30px 0; color: var(--text-dim);">Chưa có tác giả nào trong thư viện.</div>';
                     return;
                 }
 
+                // Render danh sách các thẻ tác giả
                 listEl.innerHTML = allAuthors.map(item => `
                     <div class="author-item-card ${selectedAuthorName === item.name ? 'active' : ''}" onclick="selectAuthor('${item.name}')">
                         <div class="author-name-box">
@@ -168,6 +192,9 @@
             }
         }
 
+        /**
+         * Xử lý khi người dùng bấm vào một tác giả -> Lấy và hiển thị các truyện của tác giả đó
+         */
         async function selectAuthor(authorName) {
             selectedAuthorName = authorName;
             document.querySelectorAll('.author-item-card').forEach(el => el.classList.remove('active'));
@@ -184,6 +211,7 @@
             section.scrollIntoView({ behavior: 'smooth' });
 
             try {
+                // Gọi API lấy danh sách truyện của tác giả
                 const comics = await api.getComicsByAuthor(authorName);
                 count.textContent = `${comics.length} bộ truyện`;
 
@@ -192,6 +220,7 @@
                     return;
                 }
 
+                // Render danh sách các thẻ truyện
                 grid.innerHTML = comics.map(comic => {
                     const coverUrl = api.getCoverUrl(comic.cover_filename);
                     const genresHtml = (comic.genres || []).slice(0, 3).map(g => `<span class="tag-chip">${g}</span>`).join('');
@@ -214,7 +243,7 @@
             }
         }
 
-        // Rename Author Modal
+        // Mở popup modal đổi tên tác giả hàng loạt
         function openRenameModal(name) {
             document.getElementById('rename-author-old').value = name;
             document.getElementById('rename-author-display').value = name;
@@ -222,10 +251,12 @@
             document.getElementById('modal-rename-author').classList.add('active');
         }
 
+        // Đóng popup modal đổi tên
         function closeRenameModal() {
             document.getElementById('modal-rename-author').classList.remove('active');
         }
 
+        // Lắng nghe sự kiện Submit form đổi tên tác giả hàng loạt
         document.getElementById('form-rename-author').addEventListener('submit', async (e) => {
             e.preventDefault();
             const oldName = document.getElementById('rename-author-old').value.trim();
@@ -239,7 +270,7 @@
                 const res = await api.renameAuthor(oldName, newName);
                 showToast(`Đã đổi tên tác giả cho ${res.updated_count} bộ truyện!`, 'success');
                 closeRenameModal();
-                loadAuthors();
+                loadAuthors(); // Tải lại danh sách tác giả
                 if (selectedAuthorName === oldName) {
                     selectAuthor(newName);
                 }
@@ -248,7 +279,7 @@
             }
         });
 
-        // Initialize
+        // Tải danh sách tác giả ngay khi mở trang
         loadAuthors();
     </script>
 </body>

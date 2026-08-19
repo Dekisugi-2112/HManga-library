@@ -1,17 +1,9 @@
 -- =========================================================================
--- HManga Library — Database Schema (Cấu trúc Cơ Sở Dữ Liệu Supabase)
--- =========================================================================
--- Hướng dẫn: Copy toàn bộ nội dung file này và chạy trong Supabase SQL Editor.
--- Cấu trúc: Tối giản, không lưu timestamp, không phân loại multi/oneshot, không tag.
+-- HManga-library Database Schema (Simplified: No Timestamps, No Tags)
+-- Chạy script này trên Supabase SQL Editor
 -- =========================================================================
 
--- 1. BẢNG TRUYỆN TRANH (comics)
--- Lưu thông tin cơ bản của từng bộ truyện trong thư viện:
--- - id: Khóa chính tự động tăng theo thứ tự thêm vào (1, 2, 3...)
--- - title: Tên bộ truyện
--- - author: Tên tác giả
--- - cover_filename: Tên file ảnh bìa lưu tại local (VD: 4029076.jpg)
--- - source_url: Đường link gốc tham khảo từ hentaifox
+-- 1. Bảng comics (ID tự tăng theo thứ tự thêm vào: 1, 2, 3...)
 CREATE TABLE IF NOT EXISTS public.comics (
     id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
@@ -20,51 +12,35 @@ CREATE TABLE IF NOT EXISTS public.comics (
     source_url TEXT
 );
 
--- Dọn dẹp các cột cũ không sử dụng (nếu database đã tồn tại từ trước)
+-- Gỡ bỏ các cột không sử dụng (nếu bảng đã tồn tại từ trước)
 ALTER TABLE public.comics DROP COLUMN IF EXISTS type;
 ALTER TABLE public.comics DROP COLUMN IF EXISTS status;
 ALTER TABLE public.comics DROP COLUMN IF EXISTS personal_note;
 ALTER TABLE public.comics DROP COLUMN IF EXISTS created_at;
 ALTER TABLE public.comics DROP COLUMN IF EXISTS updated_at;
 
--- 2. XÓA BỎ HỆ THỐNG TAGS CŨ (NẾU CÓ)
--- Xóa bảng liên kết và bảng tags cũ để chuyển hẳn sang thể loại (genres)
+-- 2. Xóa bỏ hoàn toàn hệ thống tags cũ (nếu có)
 DROP TABLE IF EXISTS public.comic_tags CASCADE;
 DROP TABLE IF EXISTS public.tags CASCADE;
 DROP INDEX IF EXISTS idx_tags_name;
 
--- 3. BẢNG THỂ LOẠI (genres)
--- Lưu danh mục các thể loại truyện (Action, Romance, Comedy...):
--- - id: Khóa chính
--- - name: Tên thể loại (DUY NHẤT - UNIQUE, không trùng lặp)
+-- 3. Bảng thể loại (genres)
 CREATE TABLE IF NOT EXISTS public.genres (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) UNIQUE NOT NULL
 );
 
--- Gỡ bỏ cột timestamp nếu có từ phiên bản trước
+-- Gỡ bỏ timestamp khỏi bảng genres nếu có
 ALTER TABLE public.genres DROP COLUMN IF EXISTS created_at;
 
--- 4. BẢNG LIÊN KẾT TRUYỆN & THỂ LOẠI (comic_genres)
--- Bảng trung gian giải quyết quan hệ Nhiều - Nhiều (Many-to-Many):
--- - 1 truyện có thể có nhiều thể loại.
--- - 1 thể loại có thể gắn cho nhiều truyện.
--- - ON DELETE CASCADE: Khi xóa truyện hoặc xóa thể loại, liên kết sẽ tự động bị xóa.
+-- 4. Bảng liên kết truyện & thể loại (comic_genres)
 CREATE TABLE IF NOT EXISTS public.comic_genres (
     comic_id INT REFERENCES public.comics(id) ON DELETE CASCADE,
     genre_id INT REFERENCES public.genres(id) ON DELETE CASCADE,
     PRIMARY KEY (comic_id, genre_id)
 );
 
--- 5. BẢNG CHƯƠNG TRUYỆN (chapters)
--- Lưu thông tin từng chương/tập của bộ truyện:
--- - id: Khóa chính
--- - comic_id: Khóa ngoại liên kết tới bộ truyện trong bảng comics
--- - chapter_number: Số thứ tự chương (VD: 1, 1.5, 2...)
--- - title: Tên chương tùy chọn
--- - base_url: Link ảnh mẫu (trang 1) dùng để sinh URL các trang ảnh khi đọc
--- - total_pages: Tổng số trang ảnh trong chương
--- - UNIQUE (comic_id, chapter_number): Không cho phép trùng số chương trong cùng 1 truyện
+-- 5. Bảng chapters
 CREATE TABLE IF NOT EXISTS public.chapters (
     id SERIAL PRIMARY KEY,
     comic_id INT NOT NULL REFERENCES public.comics(id) ON DELETE CASCADE,
@@ -75,27 +51,27 @@ CREATE TABLE IF NOT EXISTS public.chapters (
     UNIQUE (comic_id, chapter_number)
 );
 
--- Gỡ bỏ cột timestamp khỏi bảng chapters nếu có
+-- Gỡ bỏ timestamp khỏi bảng chapters nếu có
 ALTER TABLE public.chapters DROP COLUMN IF EXISTS created_at;
 ALTER TABLE public.chapters DROP COLUMN IF EXISTS updated_at;
 
--- Gỡ bỏ trigger tự động cập nhật timestamp (nếu có)
+-- Gỡ bỏ triggers tự động cập nhật timestamp (nếu có)
 DROP TRIGGER IF EXISTS update_comics_modtime ON public.comics;
 DROP TRIGGER IF EXISTS update_chapters_modtime ON public.chapters;
 DROP FUNCTION IF EXISTS update_modified_column CASCADE;
 
--- 6. INDEXES TỐI ƯU HÓA TỐC ĐỘ TÌM KIẾM
+-- Indexes tối ưu tìm kiếm
 CREATE INDEX IF NOT EXISTS idx_comics_title ON public.comics(title);
 CREATE INDEX IF NOT EXISTS idx_comics_author ON public.comics(author);
 CREATE INDEX IF NOT EXISTS idx_chapters_comic_id ON public.chapters(comic_id);
 CREATE INDEX IF NOT EXISTS idx_chapters_number ON public.chapters(comic_id, chapter_number);
 CREATE INDEX IF NOT EXISTS idx_genres_name ON public.genres(name);
 
--- Gỡ index cũ không còn dùng
+-- Gỡ index cũ không dùng
 DROP INDEX IF EXISTS idx_comics_status;
 DROP INDEX IF EXISTS idx_comics_type;
 
--- 7. NẠP SẴN DANH SÁCH CÁC THỂ LOẠI MẪU PHỔ BIẾN
+-- Thêm các thể loại mẫu phổ biến nếu bảng chưa có
 INSERT INTO public.genres (name) VALUES
     ('Action'),
     ('Adventure'),

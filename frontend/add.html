@@ -1,3 +1,14 @@
+<!--
+  HManga Library — Trang Thêm Truyện Mới (add.html)
+  =================================================
+  Nhiệm vụ:
+  1. Phân tích cú pháp URL ảnh hentaifox (bóc tách gallery_id, suffix 't', đuôi file ảnh).
+  2. Kiểm tra bộ truyện đã có trong thư viện chưa (nếu đã có -> cho phép thêm nhanh chương mới).
+  3. Tạo danh sách URL xem trước và hỗ trợ test tải thử 3 trang đầu (referrerpolicy="no-referrer").
+  4. Nhập thông tin bộ truyện: Tên truyện, Tác giả (gợi ý thông minh với AuthorAutocomplete), Thể loại (chọn dạng Chips với GenreSelector).
+  5. Thiết lập thông tin chương (số thứ tự, tiêu đề).
+  6. Lưu bộ truyện -> Tạo chapter -> Tự động tải ảnh bìa về máy chủ local.
+-->
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -6,27 +17,33 @@
     <title>Thêm Truyện Mới — HManga Library</title>
     <!-- Favicon website -->
     <link rel="icon" type="image/jpeg" href="rem.jpg">
+    <!-- Stylesheet dùng chung -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Navbar -->
+    <!-- 1. Thanh điều hướng trên cùng (Navbar) -->
     <nav class="navbar">
         <div class="nav-container">
             <a href="index.html" class="nav-brand">
                 <img src="rem.jpg" alt="HManga Logo" class="nav-logo">
-                <span>HManga</span>
+                <span class="nav-brand-text">HManga</span>
             </a>
+            <!-- Thanh tìm kiếm nhanh trên Navbar -->
             <div class="nav-center">
-                <a href="search.html" class="nav-link nav-search-pill">
-                    <img src="data-icon/search.png" alt="Tìm kiếm" class="nav-icon">
-                    <span>Tìm kiếm</span>
-                </a>
+                <form class="quick-search-form" id="quickSearchForm" action="index.html" method="GET" autocomplete="off">
+                    <div class="quick-search-wrapper">
+                        <img src="data-icon/search.png" alt="Search" class="quick-search-icon">
+                        <input type="search" name="s" id="inputQuickSearch" class="quick-search-input" placeholder="Search..." autocomplete="off">
+                    </div>
+                    <a href="search.html" id="btnGoAdvanced" class="btn-go-advanced" title="Advanced Search">
+                        <svg class="bolt-icon" viewBox="0 0 24 24">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                        </svg>
+                        <span>Advanced<span class="btn-text-hide-mobile"> Search</span></span>
+                    </a>
+                </form>
             </div>
             <div class="nav-links">
-                <a href="index.html" class="nav-link">
-                    <img src="data-icon/home.png" alt="Trang chủ" class="nav-icon">
-                    <span>Trang chủ</span>
-                </a>
                 <a href="genres.html" class="nav-link">🏷️ Thể loại</a>
                 <a href="authors.html" class="nav-link">✍️ Tác giả</a>
                 <a href="add.html" class="btn-add active">
@@ -37,14 +54,15 @@
         </div>
     </nav>
 
-    <!-- Main Content -->
+    <!-- 2. Khu vực nội dung chính (Main Content) -->
     <main class="main-content" style="max-width: 800px;">
+        <!-- Tiêu đề trang -->
         <div class="page-header">
             <h1 class="page-title">➕ Thêm Truyện Mới</h1>
             <p class="page-subtitle">Nhập link ảnh từ hentaifox để bóc tách thông tin và khởi tạo bộ truyện vào thư viện</p>
         </div>
 
-        <!-- SECTION 1: URL CHECKER -->
+        <!-- PHẦN 1: BÓC TÁCH & KIỂM TRA ĐƯỜNG LINK ẢNH HENTAIFOX -->
         <div class="card">
             <h2 style="font-size: 16px; margin-bottom: 14px; color: #818cf8; display: flex; align-items: center; gap: 8px;">
                 🔗 1. Phân Tích & Kiểm Tra URL Ảnh
@@ -58,7 +76,7 @@
                 </div>
             </div>
 
-            <!-- Parsed Metadata Badge Info -->
+            <!-- Khung hiển thị thông tin bóc tách được (Gallery ID, Hậu tố, Đuôi ảnh) -->
             <div id="parsed-info-box" style="display: none; background: #050811; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 14px; font-size: 13px;">
                 <div style="display: flex; gap: 16px; flex-wrap: wrap;">
                     <div>Gallery ID: <b id="info-gallery-id" style="color: var(--primary); font-family: monospace;">---</b></div>
@@ -67,7 +85,7 @@
                 </div>
             </div>
 
-            <!-- Existing Comic Notice -->
+            <!-- Cảnh báo nếu bộ truyện này đã tồn tại trong thư viện -->
             <div id="existing-comic-alert" style="display: none; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
                 <div style="color: var(--warning); font-weight: 700; margin-bottom: 4px;">⚠️ Bộ truyện này đã có trong thư viện!</div>
                 <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;" id="existing-comic-text">Truyện: ...</p>
@@ -77,7 +95,7 @@
                 </div>
             </div>
 
-            <!-- Total Pages & URL Generator -->
+            <!-- Ô nhập tổng số trang và nút sinh danh sách trang -->
             <div class="form-row" style="align-items: flex-end; margin-bottom: 14px;">
                 <div class="form-group" style="margin-bottom: 0;">
                     <label class="form-label">Tổng số trang:</label>
@@ -88,7 +106,7 @@
                 </div>
             </div>
 
-            <!-- Preview & Test List -->
+            <!-- Khung danh sách URL các trang và nút test tải thử -->
             <div id="preview-container" style="display: none; margin-top: 14px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                     <label class="form-label" style="margin: 0;" id="preview-count-label">Danh sách trang:</label>
@@ -98,7 +116,7 @@
             </div>
         </div>
 
-        <!-- SECTION 2: COMIC INFO FORM -->
+        <!-- PHẦN 2: FORM THÔNG TIN TRUYỆN TRANH -->
         <form id="form-comic-info">
             <div class="card" id="card-comic-details">
                 <h2 style="font-size: 16px; margin-bottom: 14px; color: #818cf8; display: flex; align-items: center; gap: 8px;">
@@ -110,12 +128,13 @@
                     <input type="text" id="comic-title" class="form-control" placeholder="Nhập tên bộ truyện..." required>
                 </div>
 
+                <!-- Gợi ý tác giả thông minh (AuthorAutocompleteComponent) -->
                 <div class="form-group">
                     <label class="form-label">Tên tác giả</label>
                     <input type="text" id="comic-author" class="form-control" placeholder="Gõ để tìm tác giả có sẵn hoặc tạo tác giả mới..." autocomplete="off">
                 </div>
 
-                <!-- CHỌN THỂ LOẠI (CHỈ CHỌN, KHÔNG GÕ CHỮ) -->
+                <!-- CHỌN THỂ LOẠI (CHỌN DẠNG NÚT BẤM CHIPS) -->
                 <div class="form-group">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                         <label class="form-label" style="margin: 0;">Chọn thể loại (bấm vào các thể loại để chọn):</label>
@@ -125,7 +144,7 @@
                 </div>
             </div>
 
-            <!-- SECTION 3: CHAPTER INFO -->
+            <!-- PHẦN 3: THÔNG TIN CHƯƠNG TRUYỆN -->
             <div class="card" id="card-chapter-details">
                 <h2 style="font-size: 16px; margin-bottom: 14px; color: #818cf8; display: flex; align-items: center; gap: 8px;">
                     📖 3. Thông Tin Chương
@@ -143,12 +162,14 @@
                 </div>
             </div>
 
+            <!-- Nút xác nhận lưu truyện -->
             <button type="submit" id="btn-submit-comic" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 15px;">
                 💾 Lưu & Thêm Truyện Vào Thư Viện
             </button>
         </form>
     </main>
 
+    <!-- Nạp file JavaScript tiện ích dùng chung -->
     <script src="app.js"></script>
     <script>
         let genreSelector;
@@ -157,12 +178,12 @@
         let generatedUrls = [];
         let existingComicData = null;
 
-        // Initialize Genre Selector & Author Autocomplete
+        // Khởi tạo các Component: Chọn thể loại và Gợi ý tác giả
         document.addEventListener('DOMContentLoaded', async () => {
             genreSelector = new GenreSelectorComponent('genre-selector-box');
             authorAutocomplete = new AuthorAutocompleteComponent('comic-author');
 
-            // Load all available genres from database
+            // Nạp danh sách thể loại từ database
             try {
                 const genres = await api.getGenres();
                 genreSelector.setAvailableGenres(genres);
@@ -170,7 +191,7 @@
                 console.warn('Lỗi nạp thể loại:', err);
             }
 
-            // Load authors for smart autocomplete
+            // Nạp danh sách tác giả cho bộ gợi ý tự động
             try {
                 const authors = await api.getAuthors();
                 authorAutocomplete.setAuthors(authors);
@@ -179,7 +200,9 @@
             }
         });
 
-        // Analyze URL
+        /**
+         * Phân tích cú pháp đường dẫn URL từ hentaifox
+         */
         async function analyzeUrl() {
             const url = document.getElementById('input-url').value.trim();
             if (!url) {
@@ -187,6 +210,7 @@
                 return;
             }
 
+            // Bóc tách cấu trúc URL
             const parsed = parseHentaifoxUrl(url);
             if (!parsed) {
                 showToast('URL không đúng định dạng hentaifox! (Ví dụ: https://.../4029076/1t.jpg)', 'error');
@@ -199,7 +223,7 @@
             document.getElementById('info-ext').textContent = `.${parsed.extension}`;
             document.getElementById('parsed-info-box').style.display = 'block';
 
-            // Check if comic exists in DB
+            // Kiểm tra xem bộ truyện đã có sẵn trong cơ sở dữ liệu chưa
             if (parsed.galleryId) {
                 try {
                     const check = await api.checkComicByGalleryId(parsed.galleryId);
@@ -210,7 +234,7 @@
                         document.getElementById('btn-view-existing').href = `detail.html?id=${check.comic.id}`;
                         document.getElementById('existing-comic-alert').style.display = 'block';
                         
-                        // Suggest next chapter number
+                        // Tự động gợi ý số chương tiếp theo
                         const chapters = check.comic.chapters || [];
                         if (chapters.length > 0) {
                             const maxNum = Math.max(...chapters.map(c => c.chapter_number));
@@ -221,13 +245,16 @@
                         document.getElementById('existing-comic-alert').style.display = 'none';
                     }
                 } catch {
-                    // Ignore check errors
+                    // Bỏ qua nếu lỗi kiểm tra
                 }
             }
 
             updateUrlList();
         }
 
+        /**
+         * Cập nhật và vẽ lại danh sách URL tất cả các trang ảnh
+         */
         function updateUrlList() {
             if (!currentParsed) return;
             const baseUrl = document.getElementById('input-url').value.trim();
@@ -248,7 +275,9 @@
             document.getElementById('preview-container').style.display = 'block';
         }
 
-        // Test First 3 Images
+        /**
+         * Test tải thử 3 trang đầu tiên với referrerpolicy="no-referrer" để kiểm tra tính hợp lệ của link
+         */
         function testImages() {
             if (generatedUrls.length === 0) return;
             const count = Math.min(3, generatedUrls.length);
@@ -269,7 +298,9 @@
         document.getElementById('btn-generate-urls').addEventListener('click', updateUrlList);
         document.getElementById('btn-test-images').addEventListener('click', testImages);
 
-        // Add Chapter to Existing Comic Handler
+        /**
+         * Xử lý thêm chương mới vào bộ truyện đã tồn tại sẵn
+         */
         document.getElementById('btn-add-to-existing').addEventListener('click', async () => {
             if (!existingComicData) return;
             const baseUrl = document.getElementById('input-url').value.trim();
@@ -296,7 +327,9 @@
             }
         });
 
-        // Submit Full Form (Create New Comic)
+        /**
+         * Xử lý Submit toàn bộ form để tạo bộ truyện mới
+         */
         document.getElementById('form-comic-info').addEventListener('submit', async (e) => {
             e.preventDefault();
             const title = document.getElementById('comic-title').value.trim();
@@ -322,7 +355,7 @@
             btnSubmit.innerHTML = '⏳ Đang lưu truyện và tải cover...';
 
             try {
-                // 1. Tạo Comic kèm thể loại đã chọn
+                // 1. Tạo bản ghi bộ truyện (Comic) kèm thể loại
                 const comic = await api.createComic({
                     title,
                     author: author || undefined,
@@ -330,7 +363,7 @@
                     source_url: baseUrl
                 });
 
-                // 2. Tạo Chapter
+                // 2. Tạo bản ghi chương truyện (Chapter)
                 await api.createChapter(comic.id, {
                     chapter_number: chapterNum,
                     title: chapterTitle || undefined,
@@ -338,7 +371,7 @@
                     total_pages: totalPages
                 });
 
-                // 3. Tải Cover Image
+                // 3. Tải ảnh bìa về lưu trữ tại server
                 try {
                     await api.downloadCover(baseUrl, comic.id);
                 } catch (coverErr) {

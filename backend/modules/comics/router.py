@@ -1,3 +1,15 @@
+"""
+Comics Router Module
+====================
+Định nghĩa các endpoint RESTful API quản lý bộ truyện tranh (/api/comics):
+- GET /api/comics: Lấy danh sách truyện (hỗ trợ lọc theo thể loại và tìm kiếm tên).
+- GET /api/comics/{id}: Lấy chi tiết bộ truyện kèm danh sách chapters.
+- POST /api/comics: Tạo bộ truyện mới kèm gán thể loại.
+- PUT /api/comics/{id}: Chỉnh sửa thông tin bộ truyện.
+- DELETE /api/comics/{id}: Xóa bộ truyện và file ảnh bìa liên quan.
+- GET /api/comics/check/{gallery_id}: Kiểm tra bộ truyện đã có trong thư viện chưa theo gallery_id.
+"""
+
 from fastapi import APIRouter, HTTPException
 from typing import List, Optional
 from modules.comics.schemas import ComicCreate, ComicUpdate, ComicResponse, ComicDetailResponse
@@ -7,34 +19,59 @@ router = APIRouter(prefix="/api/comics", tags=["comics"])
 
 @router.get("", response_model=List[ComicResponse])
 def get_comics(genre: Optional[str] = None, q: Optional[str] = None):
+    """
+    API lấy danh sách toàn bộ truyện trong thư viện:
+    - genre: Lọc theo tên thể loại (VD: ?genre=Action)
+    - q: Tìm kiếm theo từ khóa tên truyện (VD: ?q=one+piece)
+    """
     return service.get_all_comics(genre=genre, q=q)
 
 @router.get("/{comic_id}", response_model=ComicDetailResponse)
 def get_comic(comic_id: int):
+    """
+    API lấy thông tin chi tiết của 1 bộ truyện theo ID (kèm chapters và genres).
+    Trả về 404 nếu không tìm thấy truyện.
+    """
     comic = service.get_comic_detail(comic_id)
     if not comic:
-        raise HTTPException(status_code=404, detail="Comic not found")
+        raise HTTPException(status_code=404, detail="Không tìm thấy bộ truyện")
     return comic
 
 @router.post("", response_model=ComicDetailResponse)
 def create_comic(comic: ComicCreate):
+    """
+    API tạo mới một bộ truyện:
+    - Nhận vào: title, author, genres[], source_url
+    - Tự động gán/tạo thể loại trong database.
+    """
     return service.create_comic(comic)
 
 @router.put("/{comic_id}", response_model=ComicDetailResponse)
 def update_comic(comic_id: int, comic: ComicUpdate):
+    """
+    API cập nhật thông tin bộ truyện theo ID.
+    Trả về 404 nếu bộ truyện không tồn tại.
+    """
     updated = service.update_comic(comic_id, comic)
     if not updated:
-        raise HTTPException(status_code=404, detail="Comic not found")
+        raise HTTPException(status_code=404, detail="Không tìm thấy bộ truyện để cập nhật")
     return updated
 
 @router.delete("/{comic_id}")
 def delete_comic(comic_id: int):
+    """
+    API xóa bộ truyện khỏi hệ thống (cascade xóa chapters, liên kết thể loại và file bìa local).
+    """
     service.delete_comic(comic_id)
-    return {"message": "Comic deleted successfully"}
+    return {"message": "Đã xóa bộ truyện thành công"}
 
 @router.get("/check/{gallery_id}")
 def check_comic_exists(gallery_id: str):
-    """Kiểm tra truyện đã tồn tại theo gallery_id"""
+    """
+    API kiểm tra xem truyện đã tồn tại trong thư viện chưa thông qua gallery_id của hentaifox.
+    - Trả về: { exists: true, comic: {...} } nếu đã có.
+    - Trả về: { exists: false } nếu chưa có.
+    """
     comic = service.check_comic_by_gallery_id(gallery_id)
     if comic:
         return {"exists": True, "comic": comic}

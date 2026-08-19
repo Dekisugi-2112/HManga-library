@@ -2,9 +2,12 @@
   HManga Library — Trang Tìm Kiếm & Lọc Nâng Cao (search.html)
   ===========================================================
   Nhiệm vụ:
-  - Cung cấp form tìm kiếm kết hợp nhiều tiêu chí: tên truyện, tác giả, thể loại.
-  - Hiển thị kết quả tìm kiếm theo dạng lưới thẻ truyện (Grid Cards).
-  - Cho phép người dùng đặt lại bộ lọc tìm kiếm (Reset filter).
+  1. Cung cấp form tìm kiếm kết hợp nhiều tiêu chí:
+     - Tên bộ truyện (tìm kiếm mờ ilike).
+     - Tác giả (gợi ý tự động hoặc nhập tay).
+     - Thể loại (dropdown chọn thể loại kèm số lượng truyện).
+  2. Hiển thị kết quả tìm kiếm theo dạng lưới thẻ truyện (Grid Cards).
+  3. Cho phép người dùng đặt lại bộ lọc tìm kiếm (Reset filter) về mặc định.
 -->
 <!DOCTYPE html>
 <html lang="vi">
@@ -24,23 +27,27 @@
             <!-- Logo thương hiệu -->
             <a href="index.html" class="nav-brand">
                 <img src="rem.jpg" alt="HManga Logo" class="nav-logo">
-                <span>HManga</span>
+                <span class="nav-brand-text">HManga</span>
             </a>
 
-            <!-- Nút tìm kiếm trung tâm đang active -->
+            <!-- Thanh tìm kiếm chính giữa Navbar dạng Quick Search & Advanced Button -->
             <div class="nav-center">
-                <a href="search.html" class="nav-link nav-search-pill active">
-                    <img src="data-icon/search.png" alt="Tìm kiếm" class="nav-icon">
-                    <span>Tìm kiếm</span>
-                </a>
+                <form class="quick-search-form" id="quickSearchForm" action="index.html" method="GET" autocomplete="off">
+                    <div class="quick-search-wrapper">
+                        <img src="data-icon/search.png" alt="Search" class="quick-search-icon">
+                        <input type="search" name="s" id="inputQuickSearch" class="quick-search-input" placeholder="Search..." autocomplete="off">
+                    </div>
+                    <a href="search.html" id="btnGoAdvanced" class="btn-go-advanced always-visible" title="Advanced Search">
+                        <svg class="bolt-icon" viewBox="0 0 24 24">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                        </svg>
+                        <span>Advanced<span class="btn-text-hide-mobile"> Search</span></span>
+                    </a>
+                </form>
             </div>
 
             <!-- Các nút điều hướng bên phải -->
             <div class="nav-links">
-                <a href="index.html" class="nav-link">
-                    <img src="data-icon/home.png" alt="Trang chủ" class="nav-icon">
-                    <span>Trang chủ</span>
-                </a>
                 <a href="genres.html" class="nav-link">🏷️ Thể loại</a>
                 <a href="authors.html" class="nav-link">✍️ Tác giả</a>
                 <a href="add.html" class="btn-add">
@@ -100,8 +107,9 @@
     <!-- Nạp file JavaScript tiện ích dùng chung -->
     <script src="app.js"></script>
     <script>
-        // Load initial genres and authors for filter dropdown
+        // Nạp dữ liệu ban đầu cho các dropdown thể loại và danh sách tác giả
         document.addEventListener('DOMContentLoaded', async () => {
+            // Nạp danh sách thể loại vào thẻ <select>
             try {
                 const genres = await api.getGenres();
                 const genreSelect = document.getElementById('search-genre');
@@ -115,6 +123,7 @@
                 console.warn('Lỗi nạp thể loại tìm kiếm:', err);
             }
 
+            // Nạp danh sách tác giả vào thẻ <datalist>
             try {
                 const authors = await api.getAuthors();
                 const datalist = document.getElementById('search-authors-datalist');
@@ -123,9 +132,13 @@
                 console.warn('Lỗi nạp tác giả tìm kiếm:', err);
             }
 
+            // Thực hiện tìm kiếm ban đầu
             doSearch();
         });
 
+        /**
+         * Hàm thực hiện tìm kiếm kết hợp nhiều tiêu chí và vẽ kết quả lên lưới
+         */
         async function doSearch() {
             const q = document.getElementById('search-q').value.trim();
             const author = document.getElementById('search-author').value.trim();
@@ -138,10 +151,12 @@
             grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-dim);">⏳ Đang tìm kiếm...</div>';
 
             try {
+                // Gọi API tìm kiếm nâng cao từ Backend
                 const results = await api.searchComics({ q, author, genre });
                 resHeader.style.display = 'block';
                 countEl.textContent = results.length;
 
+                // Nếu không có kết quả phù hợp
                 if (results.length === 0) {
                     grid.innerHTML = `
                         <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--text-muted);">
@@ -152,6 +167,7 @@
                     return;
                 }
 
+                // Render danh sách các thẻ truyện tìm được
                 grid.innerHTML = results.map(comic => {
                     const coverUrl = api.getCoverUrl(comic.cover_filename);
                     const genresHtml = (comic.genres || []).slice(0, 3).map(g => 
@@ -181,11 +197,13 @@
             }
         }
 
+        // Lắng nghe Submit form tìm kiếm
         document.getElementById('search-form').addEventListener('submit', (e) => {
             e.preventDefault();
             doSearch();
         });
 
+        // Nút đặt lại bộ lọc tìm kiếm
         document.getElementById('btn-reset-search').addEventListener('click', () => {
             document.getElementById('search-form').reset();
             doSearch();

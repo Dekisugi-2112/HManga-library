@@ -1,3 +1,13 @@
+<!--
+  HManga Library — Trang Quản Lý Thể Loại (genres.html)
+  ======================================================
+  Nhiệm vụ:
+  1. Hiển thị danh sách toàn bộ các thể loại trong thư viện kèm số lượng bộ truyện của từng thể loại.
+  2. Cung cấp form thêm thể loại mới.
+  3. Cung cấp chức năng Đổi tên thể loại (modal popup).
+  4. Cung cấp chức năng Xóa thể loại (kèm hộp thoại xác nhận).
+  5. Khi click vào một thể loại -> Hiển thị danh sách tất cả các bộ truyện thuộc thể loại đó bên dưới.
+-->
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -6,14 +16,17 @@
     <title>Quản Lý Thể Loại — HManga Library</title>
     <!-- Favicon website -->
     <link rel="icon" type="image/jpeg" href="rem.jpg">
+    <!-- Stylesheet dùng chung -->
     <link rel="stylesheet" href="style.css">
     <style>
+        /* Lưới hiển thị các thẻ thể loại */
         .genre-manage-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
             gap: 12px;
             margin-top: 16px;
         }
+        /* Thẻ đại diện cho từng thể loại */
         .genre-item-card {
             background: #090d16;
             border: 1px solid var(--border-color);
@@ -56,24 +69,29 @@
     </style>
 </head>
 <body>
-    <!-- Navbar -->
+    <!-- 1. Thanh điều hướng trên cùng (Navbar) -->
     <nav class="navbar">
         <div class="nav-container">
             <a href="index.html" class="nav-brand">
                 <img src="rem.jpg" alt="HManga Logo" class="nav-logo">
-                <span>HManga</span>
+                <span class="nav-brand-text">HManga</span>
             </a>
+            <!-- Thanh tìm kiếm nhanh trên Navbar -->
             <div class="nav-center">
-                <a href="search.html" class="nav-link nav-search-pill">
-                    <img src="data-icon/search.png" alt="Tìm kiếm" class="nav-icon">
-                    <span>Tìm kiếm</span>
-                </a>
+                <form class="quick-search-form" id="quickSearchForm" action="index.html" method="GET" autocomplete="off">
+                    <div class="quick-search-wrapper">
+                        <img src="data-icon/search.png" alt="Search" class="quick-search-icon">
+                        <input type="search" name="s" id="inputQuickSearch" class="quick-search-input" placeholder="Search..." autocomplete="off">
+                    </div>
+                    <a href="search.html" id="btnGoAdvanced" class="btn-go-advanced" title="Advanced Search">
+                        <svg class="bolt-icon" viewBox="0 0 24 24">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                        </svg>
+                        <span>Advanced<span class="btn-text-hide-mobile"> Search</span></span>
+                    </a>
+                </form>
             </div>
             <div class="nav-links">
-                <a href="index.html" class="nav-link">
-                    <img src="data-icon/home.png" alt="Trang chủ" class="nav-icon">
-                    <span>Trang chủ</span>
-                </a>
                 <a href="genres.html" class="nav-link active">🏷️ Thể loại</a>
                 <a href="authors.html" class="nav-link">✍️ Tác giả</a>
                 <a href="add.html" class="btn-add">
@@ -84,14 +102,15 @@
         </div>
     </nav>
 
-    <!-- Main Content -->
+    <!-- 2. Khu vực nội dung chính (Main Content) -->
     <main class="main-content">
+        <!-- Tiêu đề trang -->
         <div class="page-header">
             <h1 class="page-title">🏷️ Quản Lý Thể Loại</h1>
             <p class="page-subtitle">Xem danh sách, thêm mới, đổi tên hoặc xóa các thể loại truyện trong thư viện</p>
         </div>
 
-        <!-- Add New Genre Box -->
+        <!-- Khung thêm thể loại mới nhanh -->
         <div class="card">
             <h2 style="font-size: 15px; font-weight: 600; margin-bottom: 12px; color: #818cf8;">➕ Thêm thể loại mới</h2>
             <form id="form-add-genre" style="display: flex; gap: 8px; max-width: 450px;">
@@ -100,7 +119,7 @@
             </form>
         </div>
 
-        <!-- Genre List Section -->
+        <!-- Khung danh sách các thể loại -->
         <div class="card">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <h2 style="font-size: 16px; font-weight: 700; color: var(--text-main);" id="genres-count-heading">Danh Sách Thể Loại</h2>
@@ -111,7 +130,7 @@
             </div>
         </div>
 
-        <!-- Comics by Selected Genre Section -->
+        <!-- Khu vực hiển thị danh sách truyện thuộc thể loại được chọn -->
         <div id="genre-comics-section" style="display: none; margin-top: 30px;">
             <div class="page-header" style="border-top: 1px solid var(--border-color); padding-top: 24px;">
                 <h2 class="page-title" style="font-size: 20px;">
@@ -123,7 +142,7 @@
         </div>
     </main>
 
-    <!-- Modal: Rename Genre -->
+    <!-- Modal Popup: Đổi tên thể loại -->
     <div id="modal-rename-genre" class="modal-overlay">
         <div class="modal-card">
             <div class="modal-header">
@@ -144,22 +163,28 @@
         </div>
     </div>
 
+    <!-- Nạp file JavaScript tiện ích dùng chung -->
     <script src="app.js"></script>
     <script>
         let allGenres = [];
         let selectedGenreId = null;
 
+        /**
+         * Tải danh sách tất cả các thể loại từ Backend API và hiển thị lên giao diện
+         */
         async function loadGenres() {
             const listEl = document.getElementById('genres-list');
             try {
                 allGenres = await api.getGenres();
                 document.getElementById('genres-count-heading').textContent = `Danh Sách Thể Loại (${allGenres.length})`;
 
+                // Nếu chưa có thể loại nào
                 if (allGenres.length === 0) {
                     listEl.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 30px 0; color: var(--text-dim);">Chưa có thể loại nào. Hãy thêm thể loại mới ở trên!</div>';
                     return;
                 }
 
+                // Render danh sách các thẻ thể loại
                 listEl.innerHTML = allGenres.map(genre => `
                     <div class="genre-item-card ${selectedGenreId === genre.id ? 'active' : ''}" onclick="selectGenre(${genre.id}, '${genre.name}')">
                         <div class="genre-name-box">
@@ -178,6 +203,9 @@
             }
         }
 
+        /**
+         * Xử lý khi người dùng bấm vào một thể loại -> Lấy và hiển thị các truyện thuộc thể loại đó
+         */
         async function selectGenre(genreId, genreName) {
             selectedGenreId = genreId;
             document.querySelectorAll('.genre-item-card').forEach(el => el.classList.remove('active'));
@@ -194,6 +222,7 @@
             section.scrollIntoView({ behavior: 'smooth' });
 
             try {
+                // Gọi API lấy danh sách truyện theo thể loại
                 const comics = await api.getComicsByGenre(genreId);
                 count.textContent = `${comics.length} bộ truyện`;
 
@@ -202,6 +231,7 @@
                     return;
                 }
 
+                // Render danh sách thẻ truyện
                 grid.innerHTML = comics.map(comic => {
                     const coverUrl = api.getCoverUrl(comic.cover_filename);
                     const genresHtml = (comic.genres || []).slice(0, 3).map(g => `<span class="tag-chip">${g}</span>`).join('');
@@ -224,7 +254,7 @@
             }
         }
 
-        // Add Genre Handler
+        // Lắng nghe sự kiện Submit form thêm thể loại mới
         document.getElementById('form-add-genre').addEventListener('submit', async (e) => {
             e.preventDefault();
             const input = document.getElementById('new-genre-name');
@@ -235,23 +265,25 @@
                 await api.createGenre(name);
                 showToast(`Đã thêm thể loại "${name}"!`, 'success');
                 input.value = '';
-                loadGenres();
+                loadGenres(); // Tải lại danh sách thể loại
             } catch (err) {
                 showToast(err.message, 'error');
             }
         });
 
-        // Rename Genre Modal
+        // Mở popup modal đổi tên thể loại
         function openRenameModal(id, name) {
             document.getElementById('rename-genre-id').value = id;
             document.getElementById('rename-genre-name').value = name;
             document.getElementById('modal-rename-genre').classList.add('active');
         }
 
+        // Đóng popup modal đổi tên
         function closeRenameModal() {
             document.getElementById('modal-rename-genre').classList.remove('active');
         }
 
+        // Lắng nghe sự kiện Submit form đổi tên thể loại
         document.getElementById('form-rename-genre').addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = parseInt(document.getElementById('rename-genre-id').value, 10);
@@ -271,7 +303,7 @@
             }
         });
 
-        // Delete Genre
+        // Xóa một thể loại sau khi xác nhận với người dùng
         async function confirmDeleteGenre(id, name) {
             if (!confirm(`Bạn có chắc muốn xóa thể loại "${name}" không? Thể loại này sẽ được gỡ khỏi tất cả các truyện liên quan.`)) return;
             try {
@@ -287,7 +319,7 @@
             }
         }
 
-        // Initialize
+        // Tải danh sách thể loại ngay khi mở trang
         loadGenres();
     </script>
 </body>
