@@ -424,7 +424,7 @@ body {
 
 .comic-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 16px;
 }
 
@@ -899,7 +899,7 @@ body {
     background: transparent;
 }
 
-/* ---- CHẾ ĐỘ CUỘN DỌC ---- */
+/* ==================== 1. KÍCH THƯỚC ẢNH CHẾ ĐỘ CUỘN DỌC (SCROLL MODE) ==================== */
 .scroll-mode-view {
     display: flex;
     flex-direction: column;
@@ -918,27 +918,18 @@ body {
     padding: 0;
 }
 
-/*
- * Class ảnh đọc truyện (chuẩn hentairead):
- *   - max-height: 100vh  → ảnh không cao hơn màn hình (không full, còn thấy viền)
- *   - max-width: 100%    → ảnh không vượt rộng hơn khung chứa
- *   - width: auto        → co giãn linh hoạt theo chiều cao
- *   - height: auto       → giữ đúng tỉ lệ gốc
- *   - object-fit: contain → không crop, không méo
- *   - aspect-ratio       → được gán động bằng JS sau khi ảnh tải xong
- *     → giúp trình duyệt giữ chỗ đúng kích thước trước khi ảnh load, tránh layout shift
- */
-.reading-image {
+/* 👉 CHỈNH SỬA KÍCH THƯỚC ẢNH CUỘN DỌC TẠI ĐÂY: */
+.scroll-mode-view .reading-image {
     display: block;
     margin: 0 auto;
+    width: 100%;
     height: auto;
-    width: auto;
-    max-height: 100vh;
-    max-width: 100%;
+    max-height: 100vh;  /* Chiều cao tối đa khi cuộn (vd: 100vh, 90vh, 850px...) */
+    max-width: 100%;    /* Chiều rộng tối đa khi cuộn (vd: 100%, 900px, 800px...) */
     object-fit: contain;
 }
 
-/* ---- CHẾ ĐỘ TỪNG TRANG ---- */
+/* ==================== 2. KÍCH THƯỚC ẢNH CHẾ ĐỘ TỪNG TRANG (PAGE MODE) ==================== */
 .page-mode-view {
     display: flex;
     flex-direction: column;
@@ -949,7 +940,7 @@ body {
     padding: 8px 0 20px;
 }
 
-/* Wrapper căn giữa ảnh đơn lẻ theo cả chiều dọc lẫn chiều ngang */
+/* Khung chứa ảnh đơn lẻ căn giữa màn hình */
 .page-mode-wrapper {
     display: flex;
     justify-content: center;
@@ -958,8 +949,15 @@ body {
     min-height: calc(100vh - 120px);
 }
 
-/* Ảnh ở chế độ từng trang: cùng quy tắc với cuộn, thêm cursor để gợi ý bấm */
+/* 👉 CHỈNH SỬA KÍCH THƯỚC ẢNH TỪNG TRANG TẠI ĐÂY: */
 .page-mode-view .reading-image {
+    display: block;
+    margin: 0 auto;
+    width: auto;
+    height: auto;
+    max-height: 100vh;  /* Chiều cao tối đa khi đọc từng trang (vd: 100vh, 95vh, 90vh...) */
+    max-width: 100%;    /* Chiều rộng tối đa khi đọc từng trang (vd: 100%, 90vw, 850px...) */
+    object-fit: contain;
     cursor: pointer;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.9);
     border-radius: 3px;
