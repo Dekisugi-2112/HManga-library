@@ -82,15 +82,15 @@ def generate_pages(chapter_id: int):
       -> Tách suffix: '.jpg' hoặc 't.jpg'
     - Tạo vòng lặp từ `start_page` đến `end_page` để ráp thành danh sách đầy đủ.
     """
-    response = supabase.table("chapters").select("base_url, start_page, end_page, total_pages").eq("id", chapter_id).execute()
+    response = supabase.table("chapters").select("*").eq("id", chapter_id).execute()
     if not response.data:
         return []
         
     chapter = response.data[0]
-    base_url = chapter["base_url"]
-    start_page = chapter.get("start_page") or 1
-    # Dự phòng lấy total_pages nếu database chưa chạy migration
-    end_page = chapter.get("end_page") or chapter.get("total_pages") or start_page
+    base_url = chapter.get("base_url", "")
+    start_page = int(chapter.get("start_page") or 1)
+    # Dự phòng lấy total_pages nếu bản ghi cũ chưa cập nhật end_page
+    end_page = int(chapter.get("end_page") or chapter.get("total_pages") or start_page)
     
     if end_page < start_page:
         end_page = start_page

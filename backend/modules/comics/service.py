@@ -88,7 +88,14 @@ def get_comic_detail(comic_id: int):
     # 3. Lấy danh sách các chapters thuộc bộ truyện
     try:
         chapters_response = supabase.table("chapters").select("*").eq("comic_id", comic_id).order("chapter_number").execute()
-        comic["chapters"] = chapters_response.data or []
+        chapters = chapters_response.data or []
+        for ch in chapters:
+            s_page = ch.get("start_page", 1) or 1
+            e_page = ch.get("end_page", ch.get("total_pages", s_page)) or s_page
+            ch["start_page"] = s_page
+            ch["end_page"] = e_page
+            ch["total_pages"] = max(1, e_page - s_page + 1)
+        comic["chapters"] = chapters
     except Exception as e:
         comic["chapters"] = []
     
@@ -221,7 +228,14 @@ def check_comic_by_gallery_id(gallery_id: str):
             pass
         try:
             chapters_response = supabase.table("chapters").select("*").eq("comic_id", comic["id"]).order("chapter_number").execute()
-            comic["chapters"] = chapters_response.data or []
+            chapters = chapters_response.data or []
+            for ch in chapters:
+                s_page = ch.get("start_page", 1) or 1
+                e_page = ch.get("end_page", ch.get("total_pages", s_page)) or s_page
+                ch["start_page"] = s_page
+                ch["end_page"] = e_page
+                ch["total_pages"] = max(1, e_page - s_page + 1)
+            comic["chapters"] = chapters
         except:
             comic["chapters"] = []
         return comic
