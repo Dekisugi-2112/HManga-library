@@ -23,46 +23,7 @@
             background-color: #030712;
             margin: 0;
             padding: 0;
-        }
-        /* Khung bao bọc từng trang ảnh trong chế độ cuộn - FULL MÀN HÌNH 100% */
-        .reader-page-wrapper {
-            position: relative;
-            background: #030712;
-            margin-bottom: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            min-height: 200px;
-        }
-        .reader-page-wrapper img {
-            width: 100%;
-            max-width: 100%;
-            height: auto;
-            display: block;
-        }
-
-        /* Khung hiển thị chế độ từng trang - FULL MÀN HÌNH LINH HOẠT */
-        .page-mode-wrapper {
-            position: relative;
-            width: 100%;
-            min-height: calc(100vh - 140px);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 10px 0;
-        }
-        #single-page-img {
-            max-width: 100vw;
-            max-height: calc(100vh - 130px);
-            width: auto;
-            height: auto;
-            object-fit: contain;
-            display: block;
-            margin: 0 auto;
-            cursor: pointer;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.95);
-            border-radius: 4px;
+            overflow-x: hidden;
         }
     </style>
 </head>
@@ -79,25 +40,34 @@
                 </div>
             </div>
 
-            <!-- Nút chuyển đổi giữa 2 chế độ đọc (Cuộn dọc / Từng trang) -->
-            <div style="display: flex; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 2px; flex-shrink: 0;">
-                <button type="button" id="mode-scroll-btn" class="btn btn-sm" style="background: var(--primary); color: #fff;">📜 Cuộn dọc</button>
-                <button type="button" id="mode-page-btn" class="btn btn-sm" style="background: transparent; color: var(--text-muted);">📄 Từng trang</button>
+            <!-- Các nút tùy chỉnh: Kích thước hiển thị & Chế độ đọc -->
+            <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                <!-- Tùy chọn khớp kích thước ảnh (Fit Height / Fit Width) -->
+                <div style="display: flex; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 2px;">
+                    <button type="button" id="fit-height-btn" class="btn btn-sm" style="background: var(--primary); color: #fff;" title="Vừa chiều cao màn hình (Fit Height - không cuộn dài)">↕️ Vừa màn</button>
+                    <button type="button" id="fit-width-btn" class="btn btn-sm" style="background: transparent; color: var(--text-muted);" title="Tràn 100% chiều rộng màn hình (Fit Width)">↔️ Tràn rộng</button>
+                </div>
+
+                <!-- Chuyển đổi giữa 2 chế độ đọc (Cuộn dọc / Từng trang) -->
+                <div style="display: flex; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 2px;">
+                    <button type="button" id="mode-scroll-btn" class="btn btn-sm" style="background: var(--primary); color: #fff;">📜 Cuộn</button>
+                    <button type="button" id="mode-page-btn" class="btn btn-sm" style="background: transparent; color: var(--text-muted);">📄 Trang</button>
+                </div>
             </div>
         </div>
     </header>
 
     <!-- 2. Khu vực hiển thị ảnh truyện (Reader Main Content) -->
-    <div class="reader-container">
-        <!-- Chế độ 1: Xem cuộn dọc toàn bộ các trang (Full Screen Width) -->
+    <div class="reader-container fit-height" id="reader-container">
+        <!-- Chế độ 1: Xem cuộn dọc toàn bộ các trang -->
         <div id="scroll-view" class="scroll-mode-view">
             <div style="text-align: center; padding: 80px 0; color: var(--text-dim);">⏳ Đang kết nối và tải các trang ảnh...</div>
         </div>
 
-        <!-- Chế độ 2: Xem từng trang đơn lẻ (Full Screen Height & Width) -->
+        <!-- Chế độ 2: Xem từng trang đơn lẻ -->
         <div id="page-view" class="page-mode-view" style="display: none;">
             <div class="page-mode-wrapper">
-                <img id="single-page-img" src="" alt="Trang truyện" referrerpolicy="no-referrer" style="display: none;" title="Bấm vào ảnh để chuyển sang trang sau">
+                <img id="single-page-img" class="reading-image" src="" alt="Trang truyện" referrerpolicy="no-referrer" style="display: none;" title="Bấm vào ảnh để chuyển sang trang sau">
             </div>
             
             <!-- Bộ điều hướng chuyển trang -->
@@ -110,7 +80,7 @@
         </div>
 
         <!-- Thanh chuyển Chương trước / Chương sau ở cuối trang -->
-        <div style="max-width: 900px; margin: 40px auto 30px; padding: 0 16px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="max-width: 900px; margin: 40px auto 30px; padding: 0 16px; display: flex; justify-content: space-between; align-items: center; width: 100%;">
             <button type="button" id="nav-prev-chap" class="btn btn-secondary" style="visibility: hidden;">⇦ Chương trước</button>
             <a id="nav-comic-center" href="index.html" class="btn btn-secondary btn-sm" style="color: var(--text-muted);">📚 Về bộ truyện</a>
             <button type="button" id="nav-next-chap" class="btn btn-primary" style="visibility: hidden;">Chương sau ⇨</button>
@@ -207,6 +177,37 @@
 
         /**
          * Render toàn bộ danh sách ảnh trong chế độ Cuộn dọc (hỗ trợ lazy load)
+        let fitMode = localStorage.getItem('reader_fit_mode') || 'fit-height'; // 'fit-height' hoặc 'fit-width'
+
+        /**
+         * Áp dụng chế độ khớp kích thước ảnh (Fit Height / Fit Width)
+         */
+        function applyFitMode(mode) {
+            fitMode = mode;
+            localStorage.setItem('reader_fit_mode', mode);
+            const container = document.getElementById('reader-container');
+            const fitHeightBtn = document.getElementById('fit-height-btn');
+            const fitWidthBtn = document.getElementById('fit-width-btn');
+
+            if (mode === 'fit-height') {
+                container.classList.add('fit-height');
+                container.classList.remove('fit-width');
+                fitHeightBtn.style.background = 'var(--primary)';
+                fitHeightBtn.style.color = '#fff';
+                fitWidthBtn.style.background = 'transparent';
+                fitWidthBtn.style.color = 'var(--text-muted)';
+            } else {
+                container.classList.add('fit-width');
+                container.classList.remove('fit-height');
+                fitWidthBtn.style.background = 'var(--primary)';
+                fitWidthBtn.style.color = '#fff';
+                fitHeightBtn.style.background = 'transparent';
+                fitHeightBtn.style.color = 'var(--text-muted)';
+            }
+        }
+
+        /**
+         * Render toàn bộ danh sách ảnh trong chế độ Cuộn dọc (chuẩn reading-image & data-page)
          */
         function renderScrollView() {
             const scrollView = document.getElementById('scroll-view');
@@ -216,20 +217,34 @@
             }
 
             scrollView.innerHTML = pageUrls.map((url, i) => `
-                <div class="reader-page-wrapper" id="page-wrapper-${i}">
-                    <img src="${url}" alt="Trang ${i + 1}" loading="lazy" referrerpolicy="no-referrer" 
+                <div class="reader-page-wrapper" id="page-wrapper-${i}" data-page="${i + 1}">
+                    <img src="${url}" 
+                         alt="Page ${i + 1}" 
+                         data-page="${i + 1}" 
+                         class="reading-image" 
+                         loading="lazy" 
+                         referrerpolicy="no-referrer"
+                         onload="if(this.naturalWidth && this.naturalHeight){ this.style.aspectRatio = this.naturalWidth + ' / ' + this.naturalHeight; }"
                          onerror="this.onerror=null; this.src='rem.jpg'; this.style.maxHeight='300px';">
                 </div>
             `).join('');
         }
 
         /**
-         * Cập nhật hiển thị ảnh và số trang trong chế độ Xem từng trang
+         * Cập nhật hiển thị ảnh và số trang trong chế độ Xem từng trang (Single Page)
          */
         function updateSinglePageView() {
             if (pageUrls.length === 0) return;
             const singleImg = document.getElementById('single-page-img');
             singleImg.src = pageUrls[currentPageIndex];
+            singleImg.alt = `Page ${currentPageIndex + 1}`;
+            singleImg.setAttribute('data-page', currentPageIndex + 1);
+            singleImg.className = 'reading-image';
+            singleImg.onload = function() {
+                if (this.naturalWidth && this.naturalHeight) {
+                    this.style.aspectRatio = `${this.naturalWidth} / ${this.naturalHeight}`;
+                }
+            };
             singleImg.style.display = 'block';
             document.getElementById('page-counter').textContent = `${currentPageIndex + 1} / ${pageUrls.length}`;
 
@@ -237,7 +252,11 @@
             document.getElementById('btn-next-page').disabled = currentPageIndex === pageUrls.length - 1;
         }
 
-        // ==================== SỰ KIỆN CHUYỂN ĐỔI CHẾ ĐỘ ĐỌC ====================
+        // ==================== SỰ KIỆN CHUYỂN ĐỔI CHẾ ĐỘ & KÍCH THƯỚC ====================
+        // Chuyển đổi Fit Height (Vừa chiều cao) / Fit Width (Tràn chiều rộng)
+        document.getElementById('fit-height-btn').addEventListener('click', () => applyFitMode('fit-height'));
+        document.getElementById('fit-width-btn').addEventListener('click', () => applyFitMode('fit-width'));
+
         // Chuyển sang chế độ cuộn dọc
         document.getElementById('mode-scroll-btn').addEventListener('click', () => {
             currentMode = 'scroll';
@@ -303,6 +322,9 @@
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         });
+
+        // Khởi tạo chế độ fit kích thước đã lưu
+        applyFitMode(fitMode);
 
         // Khởi chạy trình đọc truyện khi trang nạp xong
         initReader();

@@ -863,15 +863,15 @@ body {
     border-top: 1px solid var(--border-color);
 }
 
-/* ==================== READER STYLES (FULL SCREEN RESPONSIVE) ==================== */
+/* ==================== READER STYLES (HENTAIREAD SPEC & FULL SCREEN) ==================== */
 .reader-toolbar {
     position: sticky;
     top: 0;
     z-index: 40;
-    background: rgba(2, 6, 23, 0.92);
-    backdrop-filter: blur(10px);
+    background: rgba(2, 6, 23, 0.94);
+    backdrop-filter: blur(12px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 10px 16px;
+    padding: 8px 16px;
     width: 100%;
 }
 
@@ -889,6 +889,9 @@ body {
     max-width: 100%;
     margin: 0 auto;
     padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .scroll-mode-view {
@@ -900,13 +903,46 @@ body {
     padding: 0;
 }
 
-.scroll-mode-view img {
+.reader-page-wrapper {
+    position: relative;
+    background: #030712;
+    margin: 0 auto 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     width: 100%;
-    max-width: 100%;
-    height: auto;
-    display: block;
+    min-height: 250px;
 }
 
+/* Base class cho ảnh đọc truyện theo chuẩn hentairead */
+.reading-image {
+    display: block;
+    margin: 0 auto;
+    object-fit: contain;
+    transition: max-height 0.2s ease, width 0.2s ease;
+}
+
+/* Chế độ 1: Khớp chiều cao màn hình (Fit Height / Fit Screen) - Vừa vặn 1 màn hình */
+.reader-container.fit-height .scroll-mode-view .reading-image,
+.reader-container.fit-height .page-mode-wrapper .reading-image {
+    max-height: calc(100vh - 65px);
+    max-width: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+}
+
+/* Chế độ 2: Tràn chiều rộng (Fit Width) - Bung 100% bề ngang màn hình */
+.reader-container.fit-width .scroll-mode-view .reading-image,
+.reader-container.fit-width .page-mode-wrapper .reading-image {
+    width: 100%;
+    max-width: 100%;
+    max-height: none;
+    height: auto;
+    object-fit: contain;
+}
+
+/* Chế độ xem từng trang (Single Page View) */
 .page-mode-view {
     display: flex;
     flex-direction: column;
@@ -914,15 +950,26 @@ body {
     min-height: calc(100vh - 130px);
     justify-content: center;
     width: 100%;
-    padding: 10px 0 20px;
+    padding: 8px 0 20px;
 }
 
-.page-mode-view img {
+.page-mode-wrapper {
+    position: relative;
+    width: 100%;
+    min-height: calc(100vh - 140px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 4px 0;
+}
+
+.page-mode-view .reading-image {
     max-width: 100vw;
-    max-height: calc(100vh - 140px);
+    max-height: calc(100vh - 130px);
     width: auto;
     height: auto;
     object-fit: contain;
+    cursor: pointer;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.95);
     border-radius: 4px;
 }
