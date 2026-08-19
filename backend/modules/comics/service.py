@@ -83,15 +83,41 @@ def get_all_comics(genre: str = None, q: str = None):
         
     return result
 
-def get_comic_detail(comic_id: int):
+def resolve_comic_id(comic_identifier) -> int:
     """
-    Lấy thông tin chi tiết của 1 bộ truyện theo ID:
+    Chuyển đổi tham số comic_identifier (ID số hoặc chuỗi gallery_id như '001-48410')
+    thành ID số nguyên (int) thực tế trong database.
+    """
+    if comic_identifier is None:
+        return None
+    if isinstance(comic_identifier, int):
+        return comic_identifier
+    if isinstance(comic_identifier, str):
+        if comic_identifier.isdigit():
+            return int(comic_identifier)
+        # Tra cứu theo gallery_id hoặc cover_filename hoặc source_url
+        try:
+            url_pattern = f"%/{comic_identifier.replace('-', '/')}/%"
+            res = supabase.table("comics").select("id").or_(f"gallery_id.eq.{comic_identifier},cover_filename.ilike.{comic_identifier}.%,source_url.ilike.{url_pattern}").execute()
+            if res.data:
+                return res.data[0]["id"]
+        except:
+            pass
+    return None
+
+def get_comic_detail(comic_id):
+    """
+    Lấy thông tin chi tiết của 1 bộ truyện theo ID (hoặc gallery_id):
     - Thông tin truyện cơ bản (id, gallery_id, title, author, cover_filename, source_url).
     - Danh sách thể loại (genres) của bộ truyện.
     - Danh sách các chương (chapters) đã sắp xếp theo thứ tự chapter_number tăng dần.
     """
+    real_id = resolve_comic_id(comic_id)
+    if real_id is None:
+        return None
+
     # 1. Lấy thông tin cơ bản từ bảng comics
-    response = supabase.table("comics").select("*").eq("id", comic_id).execute()
+    response = supabase.table("comics").select("*").eq("id", real_id).execute()
     if not response.data:
         return None
     comic = response.data[0]
@@ -100,14 +126,14 @@ def get_comic_detail(comic_id: int):
     # 2. Lấy danh sách thể loại từ bảng comic_genres
     comic["genres"] = []
     try:
-        genres_response = supabase.table("comic_genres").select("genres(name)").eq("comic_id", comic_id).execute()
+        genres_response = supabase.table("comic_genres").select("genres(name)").eq("comic_id", real_id).execute()
         comic["genres"] = [item["genres"]["name"] for item in genres_response.data or []]
     except Exception as e:
         print(f"[Warning] Error fetching comic_genres: {e}")
     
     # 3. Lấy danh sách các chapters thuộc bộ truyện
     try:
-        chapters_response = supabase.table("chapters").select("*").eq("comic_id", comic_id).order("chapter_number").execute()
+        chapters_response = supabase.table("chapters").select("*").eq("comic_id", real_id).order("chapter_number").execute()
         chapters = chapters_response.data or []
         for ch in chapters:
             s_page = ch.get("start_page", 1) or 1
@@ -175,23 +201,35 @@ def create_comic(comic_data: ComicCreate):
     update_cache()
     return get_comic_detail(new_comic["id"])
 
-def update_comic(comic_id: int, comic_data: ComicUpdate):
+def update_comic(comic_id, comic_data: ComicUpdate):
     """
     Cập nhật thông tin của một bộ truyện:
-    - Cập nhật các trường cơ bản (title, author, source_url) nếu có gửi lên.
+    - Cập nhật các trường cơ bản (title, author, source_url, gallery_id) nếu có gửi lên.
     - Cập nhật lại danh sách thể loại trong bảng `comic_genres` nếu có truyền genres mới.
     - Đồng bộ lại cache JSON.
     """
+    real_id = resolve_comic_id(comic_id)
+    if real_id is None:
+        return None
+
     # 1. Cập nhật các trường cơ bản trong bảng comics
     comic_dict = {k: v for k, v in comic_data.dict(exclude={"genres"}).items() if v is not None}
     if comic_dict:
-        supabase.table("comics").update(comic_dict).eq("id", comic_id).execute()
+        try:
+            supabase.table("comics").update(comic_dict).eq("id", real_id).execute()
+        except Exception as e:
+            if "gallery_id" in str(e):
+                comic_dict.pop("gallery_id", None)
+                if comic_dict:
+                    supabase.table("comics").update(comic_dict).eq("id", real_id).execute()
+            else:
+                raise e
     
     # 2. Cập nhật lại các liên kết thể loại nếu có
     if comic_data.genres is not None:
         try:
             # Xóa các liên kết thể loại cũ
-            supabase.table("comic_genres").delete().eq("comic_id", comic_id).execute()
+            supabase.table("comic_genres").delete().eq("comic_id", real_id).execute()
             
             # Thêm các liên kết thể loại mới
             genre_ids = []
@@ -206,14 +244,14 @@ def update_comic(comic_id: int, comic_data: ComicUpdate):
                         genre_ids.append(new_genre.data[0]["id"])
                     
             for g_id in genre_ids:
-                supabase.table("comic_genres").insert({"comic_id": comic_id, "genre_id": g_id}).execute()
+                supabase.table("comic_genres").insert({"comic_id": real_id, "genre_id": g_id}).execute()
         except Exception as e:
             print(f"[Warning] Error updating comic_genres: {e}")
         
     update_cache()
-    return get_comic_detail(comic_id)
+    return get_comic_detail(real_id)
 
-def delete_comic(comic_id: int):
+def delete_comic(comic_id) -> bool:
     """
     Xóa vĩnh viễn một bộ truyện khỏi hệ thống:
     1. Lấy tên file ảnh bìa (cover_filename) để xóa file local.
@@ -223,26 +261,39 @@ def delete_comic(comic_id: int):
     5. Xóa file ảnh bìa vật lý trong thư mục `cover-images/`.
     6. Đồng bộ lại cache JSON.
     """
-    comic_res = supabase.table("comics").select("cover_filename").eq("id", comic_id).execute()
+    real_id = resolve_comic_id(comic_id)
+    if real_id is None:
+        return False
+
+    comic_res = supabase.table("comics").select("cover_filename").eq("id", real_id).execute()
     cover_filename = comic_res.data[0]["cover_filename"] if comic_res.data else None
     
     try:
-        supabase.table("chapters").delete().eq("comic_id", comic_id).execute()
-    except:
-        pass
+        supabase.table("chapters").delete().eq("comic_id", real_id).execute()
+    except Exception as e:
+        print(f"[Warning] Error deleting chapters: {e}")
     try:
-        supabase.table("comic_genres").delete().eq("comic_id", comic_id).execute()
-    except:
-        pass
-    supabase.table("comics").delete().eq("id", comic_id).execute()
+        supabase.table("comic_genres").delete().eq("comic_id", real_id).execute()
+    except Exception as e:
+        print(f"[Warning] Error deleting comic_genres: {e}")
+        
+    try:
+        supabase.table("comics").delete().eq("id", real_id).execute()
+    except Exception as e:
+        print(f"[Error] Error deleting comic: {e}")
+        raise e
     
     # Xóa file ảnh bìa trên đĩa cứng
     if cover_filename:
         cover_path = Path(__file__).parent.parent.parent.parent / "cover-images" / cover_filename
         if cover_path.exists():
-            cover_path.unlink()
+            try:
+                cover_path.unlink()
+            except Exception as e:
+                print(f"[Warning] Error unlinking cover: {e}")
     
     update_cache()
+    return True
 
 def check_comic_by_gallery_id(gallery_id: str):
     """

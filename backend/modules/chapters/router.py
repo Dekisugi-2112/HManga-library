@@ -18,13 +18,13 @@ import modules.chapters.service as service
 router = APIRouter()
 
 @router.get("/api/comics/{comic_id}/chapters", response_model=List[ChapterResponse], tags=["chapters"])
-def get_chapters(comic_id: int):
-    """Lấy toàn bộ danh sách các chapters của một bộ truyện"""
+def get_chapters(comic_id: str):
+    """Lấy toàn bộ danh sách các chapters của một bộ truyện theo ID hoặc gallery_id"""
     return service.get_chapters(comic_id)
 
 @router.post("/api/comics/{comic_id}/chapters", response_model=ChapterResponse, tags=["chapters"])
-def create_chapter(comic_id: int, chapter: ChapterCreate):
-    """Tạo mới một chapter cho bộ truyện"""
+def create_chapter(comic_id: str, chapter: ChapterCreate):
+    """Tạo mới một chapter cho bộ truyện theo ID hoặc gallery_id"""
     return service.create_chapter(comic_id, chapter)
 
 @router.put("/api/chapters/{chapter_id}", response_model=ChapterResponse, tags=["chapters"])

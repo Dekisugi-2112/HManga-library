@@ -12,14 +12,17 @@ Nhiệm vụ:
 import re
 from core.database import supabase
 from modules.chapters.schemas import ChapterCreate, ChapterUpdate
-from modules.comics.service import update_cache
+from modules.comics.service import update_cache, resolve_comic_id
 
-def get_chapters(comic_id: int):
+def get_chapters(comic_id):
     """
     Lấy danh sách toàn bộ các chapters thuộc về một bộ truyện (`comic_id`),
     sắp xếp theo thứ tự `chapter_number` tăng dần.
     """
-    response = supabase.table("chapters").select("*").eq("comic_id", comic_id).order("chapter_number").execute()
+    real_id = resolve_comic_id(comic_id)
+    if real_id is None:
+        return []
+    response = supabase.table("chapters").select("*").eq("comic_id", real_id).order("chapter_number").execute()
     chapters = response.data or []
     for ch in chapters:
         s_page = ch.get("start_page", 1) or 1
@@ -29,13 +32,16 @@ def get_chapters(comic_id: int):
         ch["total_pages"] = max(1, e_page - s_page + 1)
     return chapters
 
-def create_chapter(comic_id: int, chapter_data: ChapterCreate):
+def create_chapter(comic_id, chapter_data: ChapterCreate):
     """
     Tạo mới một chapter gắn liền với bộ truyện (`comic_id`).
     - Lưu start_page và end_page vào DB và cập nhật lại cache cục bộ.
     """
+    real_id = resolve_comic_id(comic_id)
+    if real_id is None:
+        raise ValueError(f"Không tìm thấy bộ truyện với ID: {comic_id}")
     chapter_dict = chapter_data.dict()
-    chapter_dict["comic_id"] = comic_id
+    chapter_dict["comic_id"] = real_id
     response = supabase.table("chapters").insert(chapter_dict).execute()
     update_cache()
     new_ch = response.data[0]

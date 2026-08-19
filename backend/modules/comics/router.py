@@ -27,10 +27,10 @@ def get_comics(genre: Optional[str] = None, q: Optional[str] = None):
     return service.get_all_comics(genre=genre, q=q)
 
 @router.get("/{comic_id}", response_model=ComicDetailResponse)
-def get_comic(comic_id: int):
+def get_comic(comic_id: str):
     """
     API lấy thông tin chi tiết của 1 bộ truyện theo ID (kèm chapters và genres).
-    Trả về 404 nếu không tìm thấy truyện.
+    Hỗ trợ cả ID số nguyên (VD: 5) hoặc mã Gallery ID (VD: '001-48410').
     """
     comic = service.get_comic_detail(comic_id)
     if not comic:
@@ -41,16 +41,15 @@ def get_comic(comic_id: int):
 def create_comic(comic: ComicCreate):
     """
     API tạo mới một bộ truyện:
-    - Nhận vào: title, author, genres[], source_url
+    - Nhận vào: title, author, genres[], source_url, gallery_id
     - Tự động gán/tạo thể loại trong database.
     """
     return service.create_comic(comic)
 
 @router.put("/{comic_id}", response_model=ComicDetailResponse)
-def update_comic(comic_id: int, comic: ComicUpdate):
+def update_comic(comic_id: str, comic: ComicUpdate):
     """
-    API cập nhật thông tin bộ truyện theo ID.
-    Trả về 404 nếu bộ truyện không tồn tại.
+    API cập nhật thông tin bộ truyện theo ID hoặc gallery_id.
     """
     updated = service.update_comic(comic_id, comic)
     if not updated:
@@ -58,11 +57,14 @@ def update_comic(comic_id: int, comic: ComicUpdate):
     return updated
 
 @router.delete("/{comic_id}")
-def delete_comic(comic_id: int):
+def delete_comic(comic_id: str):
     """
     API xóa bộ truyện khỏi hệ thống (cascade xóa chapters, liên kết thể loại và file bìa local).
+    Hỗ trợ cả ID số nguyên (VD: 5) hoặc mã Gallery ID (VD: '001-48410').
     """
-    service.delete_comic(comic_id)
+    success = service.delete_comic(comic_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Không tìm thấy bộ truyện để xóa")
     return {"message": "Đã xóa bộ truyện thành công"}
 
 @router.get("/check/{gallery_id}")

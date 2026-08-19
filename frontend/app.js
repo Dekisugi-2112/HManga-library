@@ -107,7 +107,10 @@ const api = {
      */
     async deleteComic(id) {
         const res = await fetch(`${API_BASE}/api/comics/${id}`, { method: 'DELETE' });
-        if (!res.ok) throw new Error('Lỗi khi xóa truyện');
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.detail || 'Lỗi khi xóa bộ truyện');
+        }
         return res.json();
     },
 
@@ -121,7 +124,10 @@ const api = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-        if (!res.ok) throw new Error('Lỗi khi thêm chương');
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.detail || 'Lỗi khi thêm chương');
+        }
         return res.json();
     },
 
@@ -134,7 +140,10 @@ const api = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-        if (!res.ok) throw new Error('Lỗi khi cập nhật chương');
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.detail || 'Lỗi khi cập nhật chương');
+        }
         return res.json();
     },
 
@@ -143,7 +152,10 @@ const api = {
      */
     async deleteChapter(chapterId) {
         const res = await fetch(`${API_BASE}/api/chapters/${chapterId}`, { method: 'DELETE' });
-        if (!res.ok) throw new Error('Lỗi khi xóa chương');
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.detail || 'Lỗi khi xóa chương');
+        }
         return res.json();
     },
 

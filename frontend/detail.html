@@ -241,9 +241,9 @@
     <!-- Nạp file JavaScript tiện ích dùng chung -->
     <script src="app.js"></script>
     <script>
-        // Lấy ID bộ truyện từ Query Parameter (VD: detail.html?id=1)
+        // Lấy ID bộ truyện từ Query Parameter (VD: detail.html?id=5 hoặc detail.html?id=001-48410)
         const urlParams = new URLSearchParams(window.location.search);
-        const comicId = parseInt(urlParams.get('id'), 10);
+        let comicId = urlParams.get('id');
         let currentComic = null;
         let editGenreSelector = null;
         let editAuthorAutocomplete = null;
@@ -273,8 +273,9 @@
             }
 
             try {
-                // Gọi API lấy chi tiết bộ truyện
+                // Gọi API lấy chi tiết bộ truyện (hỗ trợ cả ID số hoặc mã 001-48410)
                 currentComic = await api.getComic(comicId);
+                comicId = currentComic.id; // Đồng bộ sang ID số nguyên chuẩn
                 const coverUrl = api.getCoverUrl(currentComic.cover_filename);
                 const genresHtml = (currentComic.genres || []).map(g => `<a href="genres.html" class="tag-chip" style="font-size: 11px; padding: 3px 8px; text-decoration: none;">🏷️ ${g}</a>`).join('');
 
