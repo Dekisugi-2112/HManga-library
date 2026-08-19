@@ -9,6 +9,7 @@ Nhiệm vụ:
 """
 
 import os
+import re
 import httpx
 from pathlib import Path
 import aiofiles
@@ -19,19 +20,29 @@ from modules.comics.service import update_cache
 # Thư mục lưu trữ ảnh bìa cục bộ trên server
 COVER_DIR = Path(__file__).parent.parent.parent.parent / "cover-images"
 
+def convert_to_page_one_url(url: str) -> str:
+    """
+    Chuyển đổi bất kỳ URL trang nào (VD: .../236t.jpg, .../15.jpg)
+    thành URL của trang đầu tiên (VD: .../1t.jpg, .../1.jpg) để làm ảnh bìa chuẩn.
+    """
+    m = re.search(r'^(.*\/)(\d+)([a-zA-Z]*)(\.\w+)(\?.*)?$', url.strip())
+    if m:
+        prefix = m.group(1)
+        suffix = m.group(3) or ''
+        ext = m.group(4)
+        return f"{prefix}1{suffix}{ext}"
+    return url
+
 async def download_cover(url: str, comic_id: int):
     """
     Tải ảnh bìa từ URL về máy chủ và cập nhật vào bộ truyện:
-    1. Trích xuất gallery_id và đuôi file ảnh từ URL (VD: '4029076.jpg').
-    2. Gửi request bất đồng bộ bằng `httpx` kèm header Referer để tải ảnh.
-    3. Ghi file ảnh vào thư mục `cover-images/` bằng `aiofiles`.
-    4. Cập nhật `cover_filename` trong bảng `comics` và làm mới cache JSON.
+    - Bất kể URL gửi lên là trang bao nhiêu (VD: trang 236), hệ thống LUÔN LUÔN
+      chuyển đổi về trang 1 (VD: 1t.jpg hoặc 1.jpg) để làm ảnh bìa đại diện.
+    - Lưu file với tên {folder}-{gallery_id}.{ext} (VD: '001-48410.jpg').
+    - Cập nhật `cover_filename` trong bảng `comics` và làm mới cache JSON.
     """
-    # Tạo thư mục nếu chưa tồn tại
     COVER_DIR.mkdir(parents=True, exist_ok=True)
     
-    # Tách folder, gallery_id và phần mở rộng (extension) từ URL
-    # Ví dụ URL mẫu: https://i.hentaifox.com/001/48410/236t.jpg -> gallery_id = 001-48410, ext = jpg
     parts = [p for p in url.split("/") if p]
     if len(parts) < 2:
         raise HTTPException(status_code=400, detail="Invalid URL format")
@@ -43,18 +54,38 @@ async def download_cover(url: str, comic_id: int):
         gallery_id = parts[-2]
         
     ext = parts[-1].split(".")[-1] if "." in parts[-1] else "jpg"
+    # Loại bỏ query parameters nếu có trong extension
+    ext = ext.split("?")[0]
     filename = f"{gallery_id}.{ext}"
     filepath = COVER_DIR / filename
     
+    # LUÔN LUÔN chuyển đổi URL về ảnh trang đầu tiên (Trang 1)
+    page_1_url = convert_to_page_one_url(url)
+    
+    # Danh sách các link thử tải (ưu tiên link trang 1)
+    urls_to_try = [page_1_url]
+    if page_1_url != url:
+        urls_to_try.append(url)
+        
     try:
         async with httpx.AsyncClient() as client:
-            # Thiết lập header giả lập trình duyệt để tránh bị chặn 403 Forbidden
             headers = {
                 "User-Agent": "Mozilla/5.0",
                 "Referer": "https://hentaifox.com/"
             }
-            response = await client.get(url, headers=headers)
-            response.raise_for_status()
+            
+            response = None
+            for target_url in urls_to_try:
+                try:
+                    res = await client.get(target_url, headers=headers)
+                    if res.status_code == 200:
+                        response = res
+                        break
+                except Exception as req_err:
+                    print(f"[Warning] Failed to fetch cover from {target_url}: {req_err}")
+                    
+            if not response or response.status_code != 200:
+                raise HTTPException(status_code=400, detail="Không thể tải ảnh bìa trang 1 từ URL đã cung cấp")
             
             # Ghi file ảnh bất đồng bộ vào đĩa cứng
             async with aiofiles.open(filepath, "wb") as f:
@@ -66,5 +97,7 @@ async def download_cover(url: str, comic_id: int):
         
         return {"message": "Cover downloaded successfully", "filename": filename}
         
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -173,19 +173,23 @@
                     const genresHtml = (comic.genres || []).slice(0, 3).map(g => 
                         `<span class="tag-chip">${g}</span>`
                     ).join('');
+                    const titleSafe = (comic.title || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
                     return `
-                        <a href="detail.html?id=${comic.id}" class="comic-card">
+                        <div class="comic-card" onclick="window.location.href='detail.html?id=${comic.id}'" style="cursor: pointer;">
                             <div class="card-thumb-wrapper">
                                 ${comic.gallery_id ? `<span class="card-id-badge">${comic.gallery_id}</span>` : ''}
-                                <img src="${coverUrl}" alt="${comic.title}" class="card-thumb" referrerpolicy="no-referrer" onerror="this.src='rem.jpg'">
+                                <button type="button" class="btn-card-delete" onclick="handleDeleteComicCard(event, ${comic.id}, '${titleSafe}')" title="Xóa bộ truyện này">
+                                    🗑️
+                                </button>
+                                <img src="${coverUrl}" alt="${titleSafe}" class="card-thumb" referrerpolicy="no-referrer" onerror="this.src='rem.jpg'">
                             </div>
                             <div class="card-body">
-                                <div class="card-title" title="${comic.title}">${comic.title}</div>
+                                <div class="card-title" title="${titleSafe}">${comic.title}</div>
                                 <div class="card-author">${comic.author || 'Tác giả chưa rõ'}</div>
                                 <div class="card-tags">${genresHtml}</div>
                             </div>
-                        </a>
+                        </div>
                     `;
                 }).join('');
 
@@ -196,6 +200,29 @@
                     </div>
                 `;
             }
+        }
+
+        /**
+         * Xóa nhanh bộ truyện trực tiếp từ kết quả tìm kiếm
+         */
+        function handleDeleteComicCard(event, comicId, title) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            showConfirmModal({
+                title: '🗑️ Xác nhận xóa bộ truyện',
+                message: `Bạn có chắc chắn muốn xóa vĩnh viễn bộ truyện <strong>"${title}"</strong> không?<br><br><span style="color: var(--danger); font-size: 13px;">⚠️ Hành động này sẽ xóa toàn bộ các chương và file ảnh bìa liên quan, không thể khôi phục!</span>`,
+                confirmText: '🗑️ Xóa vĩnh viễn',
+                cancelText: 'Hủy bỏ',
+                type: 'danger',
+                onConfirm: async () => {
+                    await api.deleteComic(comicId);
+                    showToast(`Đã xóa bộ truyện "${title}" thành công!`, 'success');
+                    doSearch(); // Tìm lại để cập nhật danh sách
+                }
+            });
         }
 
         // Lắng nghe Submit form tìm kiếm

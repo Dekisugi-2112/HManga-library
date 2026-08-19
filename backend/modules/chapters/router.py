@@ -36,7 +36,8 @@ def update_chapter(chapter_id: int, chapter: ChapterUpdate):
     return updated
 
 @router.delete("/api/chapters/{chapter_id}", tags=["chapters"])
-def delete_chapter(chapter_id: int):
+@router.delete("/api/comics/{comic_id}/chapters/{chapter_id}", tags=["chapters"])
+def delete_chapter(chapter_id: int, comic_id: str = None):
     """Xóa bỏ một chapter khỏi hệ thống"""
     service.delete_chapter(chapter_id)
     return {"message": "Chapter deleted successfully"}

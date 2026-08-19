@@ -286,6 +286,10 @@ def delete_comic(comic_id) -> bool:
     # Xóa file ảnh bìa trên đĩa cứng
     if cover_filename:
         cover_path = Path(__file__).parent.parent.parent.parent / "cover-images" / cover_filename
+        if not cover_path.exists():
+            cover_path = Path(__file__).parent.parent.parent / "cover-images" / cover_filename
+        if not cover_path.exists():
+            cover_path = Path("cover-images") / cover_filename
         if cover_path.exists():
             try:
                 cover_path.unlink()

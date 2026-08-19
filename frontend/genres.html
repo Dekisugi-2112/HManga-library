@@ -231,28 +231,59 @@
                     return;
                 }
 
-                // Render danh sách thẻ truyện
+                // Render danh sách các thẻ truyện
                 grid.innerHTML = comics.map(comic => {
                     const coverUrl = api.getCoverUrl(comic.cover_filename);
                     const genresHtml = (comic.genres || []).slice(0, 3).map(g => `<span class="tag-chip">${g}</span>`).join('');
+                    const titleSafe = (comic.title || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
                     return `
-                        <a href="detail.html?id=${comic.id}" class="comic-card">
+                        <div class="comic-card" onclick="window.location.href='detail.html?id=${comic.id}'" style="cursor: pointer;">
                             <div class="card-thumb-wrapper">
                                 ${comic.gallery_id ? `<span class="card-id-badge">${comic.gallery_id}</span>` : ''}
-                                <img src="${coverUrl}" alt="${comic.title}" class="card-thumb" referrerpolicy="no-referrer" onerror="this.src='rem.jpg'">
+                                <button type="button" class="btn-card-delete" onclick="handleDeleteComicCard(event, ${comic.id}, '${titleSafe}')" title="Xóa bộ truyện này">
+                                    🗑️
+                                </button>
+                                <img src="${coverUrl}" alt="${titleSafe}" class="card-thumb" referrerpolicy="no-referrer" onerror="this.src='rem.jpg'">
                             </div>
                             <div class="card-body">
-                                <div class="card-title" title="${comic.title}">${comic.title}</div>
+                                <div class="card-title" title="${titleSafe}">${comic.title}</div>
                                 <div class="card-author">${comic.author || 'Tác giả chưa rõ'}</div>
                                 <div class="card-tags">${genresHtml}</div>
                             </div>
-                        </a>
+                        </div>
                     `;
                 }).join('');
 
             } catch (err) {
                 grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--danger);">❌ Lỗi: ${err.message}</div>`;
             }
+        }
+
+        /**
+         * Xóa nhanh bộ truyện từ danh sách thể loại
+         */
+        function handleDeleteComicCard(event, comicId, title) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            showConfirmModal({
+                title: '🗑️ Xác nhận xóa bộ truyện',
+                message: `Bạn có chắc chắn muốn xóa vĩnh viễn bộ truyện <strong>"${title}"</strong> không?<br><br><span style="color: var(--danger); font-size: 13px;">⚠️ Hành động này sẽ xóa toàn bộ các chương và file ảnh bìa liên quan, không thể khôi phục!</span>`,
+                confirmText: '🗑️ Xóa vĩnh viễn',
+                cancelText: 'Hủy bỏ',
+                type: 'danger',
+                onConfirm: async () => {
+                    await api.deleteComic(comicId);
+                    showToast(`Đã xóa bộ truyện "${title}" thành công!`, 'success');
+                    loadGenres(); // Tải lại danh sách thể loại và số lượng truyện
+                    if (selectedGenreId) {
+                        selectGenre(selectedGenreId, document.getElementById('selected-genre-title').textContent);
+                    }
+                }
+            });
         }
 
         // Lắng nghe sự kiện Submit form thêm thể loại mới
@@ -292,8 +323,8 @@
             if (!newName) return;
 
             try {
-                await api.updateGenre(id, newName);
-                showToast('Đã đổi tên thể loại thành công!', 'success');
+                await api.renameGenre(id, newName);
+                showToast(`Đã đổi tên thể loại thành "${newName}"!`, 'success');
                 closeRenameModal();
                 loadGenres();
                 if (selectedGenreId === id) {
@@ -305,19 +336,23 @@
         });
 
         // Xóa một thể loại sau khi xác nhận với người dùng
-        async function confirmDeleteGenre(id, name) {
-            if (!confirm(`Bạn có chắc muốn xóa thể loại "${name}" không? Thể loại này sẽ được gỡ khỏi tất cả các truyện liên quan.`)) return;
-            try {
-                await api.deleteGenre(id);
-                showToast(`Đã xóa thể loại "${name}"!`, 'success');
-                if (selectedGenreId === id) {
-                    document.getElementById('genre-comics-section').style.display = 'none';
-                    selectedGenreId = null;
+        function confirmDeleteGenre(id, name) {
+            showConfirmModal({
+                title: '🗑️ Xác nhận xóa thể loại',
+                message: `Bạn có chắc muốn xóa thể loại <strong>"${name}"</strong> không?<br><br><span style="color: var(--warning); font-size: 13px;">⚠️ Thể loại này sẽ được gỡ khỏi tất cả các bộ truyện liên quan trong thư viện.</span>`,
+                confirmText: '🗑️ Xóa thể loại',
+                cancelText: 'Hủy bỏ',
+                type: 'danger',
+                onConfirm: async () => {
+                    await api.deleteGenre(id);
+                    showToast(`Đã xóa thể loại "${name}" thành công!`, 'success');
+                    if (selectedGenreId === id) {
+                        document.getElementById('genre-comics-section').style.display = 'none';
+                        selectedGenreId = null;
+                    }
+                    loadGenres();
                 }
-                loadGenres();
-            } catch (err) {
-                showToast(err.message, 'error');
-            }
+            });
         }
 
         // Tải danh sách thể loại ngay khi mở trang

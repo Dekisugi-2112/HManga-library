@@ -76,12 +76,13 @@
                 </div>
             </div>
 
-            <!-- Khung hiển thị thông tin bóc tách được (Gallery ID, Hậu tố, Đuôi ảnh) -->
+            <!-- Khung hiển thị thông tin bóc tách được (Gallery ID, Hậu tố, Đuôi ảnh, Ảnh bìa) -->
             <div id="parsed-info-box" style="display: none; background: #050811; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 14px; font-size: 13px;">
                 <div style="display: flex; gap: 16px; flex-wrap: wrap;">
                     <div>Gallery ID: <b id="info-gallery-id" style="color: var(--primary); font-family: monospace;">---</b></div>
                     <div>Hậu tố ảnh: <b id="info-suffix" style="color: var(--warning); font-family: monospace;">---</b></div>
                     <div>Định dạng: <b id="info-ext" style="color: var(--success); font-family: monospace;">---</b></div>
+                    <div>Ảnh bìa đại diện: <b id="info-cover-file" style="color: var(--info); font-family: monospace;">Trang 1</b></div>
                 </div>
             </div>
 
@@ -222,9 +223,11 @@
             }
 
             currentParsed = parsed;
+            const coverPageUrl = getPageOneCoverUrl(url);
             document.getElementById('info-gallery-id').textContent = parsed.galleryId || '---';
             document.getElementById('info-suffix').textContent = parsed.suffix ? `.${parsed.suffix}` : '(không)';
             document.getElementById('info-ext').textContent = `.${parsed.extension}`;
+            document.getElementById('info-cover-file').textContent = coverPageUrl.split('/').pop() || 'Trang 1';
             document.getElementById('parsed-info-box').style.display = 'block';
 
             // Kiểm tra xem bộ truyện đã có sẵn trong cơ sở dữ liệu chưa
@@ -400,9 +403,10 @@
                     end_page: endPage
                 });
 
-                // 3. Tải ảnh bìa về lưu trữ tại server
+                // 3. Tải ảnh bìa về lưu trữ tại server (luôn là trang 1)
                 try {
-                    await api.downloadCover(baseUrl, comic.id);
+                    const coverPageUrl = getPageOneCoverUrl(baseUrl);
+                    await api.downloadCover(coverPageUrl, comic.id);
                 } catch (coverErr) {
                     console.warn('Lỗi tải cover:', coverErr);
                 }

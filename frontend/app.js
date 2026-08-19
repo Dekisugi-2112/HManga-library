@@ -48,6 +48,98 @@ function showToast(message, type = 'info') {
     }, 3500);
 }
 
+// ==================== 1.1 MODAL XÁC NHẬN HÀNH ĐỘNG (CONFIRM MODAL) ====================
+/**
+ * Hiển thị hộp thoại xác nhận (Modal Confirm) giao diện hiện đại thay cho window.confirm mặc định.
+ * Tránh trường hợp bị trình duyệt chặn pop-up confirm và mang lại trải nghiệm trực quan.
+ * 
+ * @param {Object} options
+ * @param {string} options.title - Tiêu đề modal (VD: "🗑️ Xác nhận xóa bộ truyện")
+ * @param {string} options.message - Nội dung thông báo chi tiết
+ * @param {string} [options.confirmText="Xác nhận xóa"] - Chữ nút đồng ý
+ * @param {string} [options.cancelText="Hủy bỏ"] - Chữ nút hủy
+ * @param {'danger'|'primary'|'warning'} [options.type="danger"] - Kiểu nút
+ * @param {Function} options.onConfirm - Hàm callback async khi người dùng nhấn xác nhận
+ */
+function showConfirmModal({
+    title = 'Xác nhận hành động',
+    message = 'Bạn có chắc chắn muốn thực hiện hành động này không?',
+    confirmText = 'Xác nhận',
+    cancelText = 'Hủy bỏ',
+    type = 'danger',
+    onConfirm
+}) {
+    let modalEl = document.getElementById('global-confirm-modal');
+    if (!modalEl) {
+        modalEl = document.createElement('div');
+        modalEl.id = 'global-confirm-modal';
+        modalEl.className = 'modal-overlay';
+        document.body.appendChild(modalEl);
+    }
+
+    const btnClass = type === 'danger' ? 'btn-danger' : 'btn-primary';
+    const borderAccent = type === 'danger' ? 'var(--danger)' : 'var(--primary)';
+
+    modalEl.innerHTML = `
+        <div class="modal-card" style="max-width: 440px; text-align: left;">
+            <div class="modal-header" style="margin-bottom: 14px;">
+                <h3 class="modal-title" style="font-size: 17px; display: flex; align-items: center; gap: 8px;">
+                    ${title}
+                </h3>
+                <button type="button" class="modal-close" id="btn-global-modal-close">&times;</button>
+            </div>
+            <div style="color: var(--text-muted); font-size: 14px; line-height: 1.6; margin-bottom: 22px; background: rgba(0, 0, 0, 0.35); padding: 14px; border-radius: 8px; border-left: 4px solid ${borderAccent};">
+                ${message}
+            </div>
+            <div class="modal-actions" style="margin-top: 0; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn btn-secondary" id="btn-global-modal-cancel">${cancelText}</button>
+                <button type="button" class="btn ${btnClass}" id="btn-global-modal-confirm">${confirmText}</button>
+            </div>
+        </div>
+    `;
+
+    modalEl.classList.add('active');
+
+    const closeModal = () => {
+        modalEl.classList.remove('active');
+        document.removeEventListener('keydown', handleKey);
+    };
+
+    const handleKey = (e) => {
+        if (e.key === 'Escape') closeModal();
+    };
+    document.addEventListener('keydown', handleKey);
+
+    const closeBtn = document.getElementById('btn-global-modal-close');
+    if (closeBtn) closeBtn.onclick = closeModal;
+    const cancelBtn = document.getElementById('btn-global-modal-cancel');
+    if (cancelBtn) cancelBtn.onclick = closeModal;
+    
+    // Click ngoài khung modal để đóng
+    modalEl.onclick = (e) => {
+        if (e.target === modalEl) closeModal();
+    };
+
+    const confirmBtn = document.getElementById('btn-global-modal-confirm');
+    if (confirmBtn) {
+        confirmBtn.onclick = async () => {
+            confirmBtn.disabled = true;
+            const originalHtml = confirmBtn.innerHTML;
+            confirmBtn.innerHTML = '⏳ Đang xử lý...';
+            try {
+                if (onConfirm) {
+                    await onConfirm();
+                }
+                closeModal();
+            } catch (err) {
+                showToast(err.message || 'Đã có lỗi xảy ra!', 'error');
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = originalHtml;
+            }
+        };
+    }
+}
+
 // ==================== 2. API CLIENT (MODULE GỌI BACKEND) ====================
 /**
  * Đối tượng trung tâm chứa tất cả các phương thức gọi API tới Backend FastAPI
@@ -367,6 +459,15 @@ function generatePageUrls(baseUrl, startPage = 1, endPage = 1) {
 function extractGalleryId(url) {
     const parsed = parseHentaifoxUrl(url);
     return parsed ? parsed.galleryId : null;
+}
+
+/**
+ * Chuyển đổi bất kỳ URL trang nào (VD: .../236t.jpg, .../15.jpg) thành link ảnh bìa trang 1 (VD: .../1t.jpg)
+ */
+function getPageOneCoverUrl(url) {
+    const parsed = parseHentaifoxUrl(url);
+    if (!parsed) return url;
+    return `${parsed.prefix}1${parsed.suffix}.${parsed.extension}`;
 }
 
 // ==================== 4. GENRE SELECTOR COMPONENT (CHỌN THỂ LOẠI) ====================

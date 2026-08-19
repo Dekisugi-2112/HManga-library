@@ -314,7 +314,7 @@
                         const startP = ch.start_page || 1;
                         const endP = ch.end_page || ch.total_pages || startP;
                         const pageCount = ch.total_pages || (endP - startP + 1);
-                        const titleEscaped = (ch.title || '').replace(/'/g, "\\'");
+                        const safeTitle = (ch.title || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
                         return `
                             <div class="chapter-row">
@@ -324,8 +324,8 @@
                                     <span style="color: var(--text-dim); font-size: 12px;">(${pageCount} trang: trang ${startP} → ${endP})</span>
                                 </a>
                                 <div style="display: flex; gap: 6px;">
-                                    <button type="button" class="btn btn-secondary btn-sm" onclick="openEditChapterModal(${ch.id}, ${ch.chapter_number}, '${titleEscaped}', ${startP}, ${endP})">✏️</button>
-                                    <button type="button" class="btn btn-danger btn-sm" onclick="confirmDeleteChapter(${ch.id})">✕</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="handleEditChapterBtn(${ch.id})" title="Sửa chương">✏️</button>
+                                    <button type="button" class="btn btn-danger btn-sm" onclick="handleDeleteChapterBtn(${ch.id}, ${ch.chapter_number})" title="Xóa chương này">🗑️</button>
                                 </div>
                             </div>
                         `;
@@ -457,6 +457,21 @@
 
         // ==================== SỬA CHƯƠNG ====================
         /** Mở modal chỉnh sửa một chương */
+        /** Tìm chapter theo ID từ danh sách đã nạp */
+        function findChapterById(id) {
+            return (currentComic?.chapters || []).find(c => c.id === id);
+        }
+
+        /** Xử lý mở modal sửa chapter an toàn qua ID */
+        function handleEditChapterBtn(chapId) {
+            const ch = findChapterById(chapId);
+            if (!ch) return;
+            const startP = ch.start_page || 1;
+            const endP = ch.end_page || ch.total_pages || startP;
+            openEditChapterModal(ch.id, ch.chapter_number, ch.title || '', startP, endP);
+        }
+
+        /** Mở modal chỉnh sửa một chương */
         function openEditChapterModal(id, num, title, startPage, endPage) {
             document.getElementById('edit-chap-id').value = id;
             document.getElementById('edit-chap-num').value = num;
@@ -496,28 +511,44 @@
         });
 
         // ==================== XÓA CHƯƠNG & XÓA BỘ TRUYỆN ====================
-        /** Xác nhận và xóa một chương */
-        async function confirmDeleteChapter(chapId) {
-            if (!confirm('Bạn có chắc chắn muốn xóa chương này không?')) return;
-            try {
-                await api.deleteChapter(chapId);
-                showToast('Đã xóa chương thành công!', 'success');
-                loadComicDetail();
-            } catch (err) {
-                showToast(err.message, 'error');
-            }
+        /** Xử lý xác nhận và xóa một chương */
+        function handleDeleteChapterBtn(chapId, chapNumber) {
+            const ch = findChapterById(chapId);
+            const titleDisplay = ch?.title ? ` - "${ch.title}"` : '';
+
+            showConfirmModal({
+                title: '🗑️ Xác nhận xóa chương truyện',
+                message: `Bạn có chắc chắn muốn xóa <strong>Chương ${chapNumber}${titleDisplay}</strong> không?<br><br><span style="color: var(--danger); font-size: 13px;">⚠️ Hành động này sẽ gỡ chương này khỏi bộ truyện và không thể hoàn tác!</span>`,
+                confirmText: '🗑️ Xóa chương này',
+                cancelText: 'Hủy bỏ',
+                type: 'danger',
+                onConfirm: async () => {
+                    await api.deleteChapter(chapId);
+                    showToast(`Đã xóa Chương ${chapNumber} thành công!`, 'success');
+                    loadComicDetail();
+                }
+            });
         }
 
         /** Xác nhận và xóa hoàn toàn toàn bộ bộ truyện */
-        async function confirmDeleteComic() {
-            if (!confirm(`Bạn có chắc chắn muốn xóa hoàn toàn bộ truyện "${currentComic.title}" và toàn bộ các chương không?`)) return;
-            try {
-                await api.deleteComic(comicId);
-                showToast('Đã xóa bộ truyện thành công!', 'success');
-                setTimeout(() => { window.location.href = 'index.html'; }, 800);
-            } catch (err) {
-                showToast(err.message, 'error');
-            }
+        function confirmDeleteComic() {
+            if (!currentComic) return;
+            const title = currentComic.title || 'bộ truyện này';
+
+            showConfirmModal({
+                title: '🗑️ Xác nhận xóa bộ truyện',
+                message: `Bạn có chắc chắn muốn xóa hoàn toàn bộ truyện <strong>"${title}"</strong> không?<br><br><span style="color: var(--danger); font-size: 13px;">⚠️ Hành động này sẽ xóa toàn bộ các chương và file ảnh bìa liên quan, không thể khôi phục!</span>`,
+                confirmText: '🗑️ Xóa vĩnh viễn',
+                cancelText: 'Hủy bỏ',
+                type: 'danger',
+                onConfirm: async () => {
+                    await api.deleteComic(comicId);
+                    showToast(`Đã xóa bộ truyện "${title}" thành công!`, 'success');
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 600);
+                }
+            });
         }
 
         // Nạp dữ liệu khi mở trang
