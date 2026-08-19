@@ -9,6 +9,10 @@ Website đọc truyện tranh cá nhân — lưu trữ và đọc manga/manhwa/m
 - AsmHentai
 
 
+cd backend
+pip install -r requirements.txt
+python restore_from_cache.py
+
 ## 🏗️ Kiến trúc
 
 ```

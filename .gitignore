@@ -26,8 +26,9 @@ node_modules/
 out/
 .turbo/
 
-# ===== Runtime & Cache =====
-cover-images/
+# ===== Runtime & Local Downloads =====
+cover-images/*
+!cover-images/rem.jpg
 
 # ===== OS =====
 .DS_Store
