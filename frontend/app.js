@@ -220,7 +220,10 @@ const api = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name })
         });
-        if (!res.ok) throw new Error('Lỗi khi thêm thể loại');
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.detail || 'Lỗi khi thêm thể loại');
+        }
         return res.json();
     },
 
@@ -233,7 +236,10 @@ const api = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name })
         });
-        if (!res.ok) throw new Error('Lỗi khi cập nhật thể loại');
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.detail || 'Lỗi khi cập nhật thể loại');
+        }
         return res.json();
     },
 

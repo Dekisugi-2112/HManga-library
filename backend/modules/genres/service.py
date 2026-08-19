@@ -9,6 +9,7 @@ Xử lý toàn bộ nghiệp vụ quản lý Thể loại (Genres):
 5. Lấy danh sách các bộ truyện thuộc về một thể loại cụ thể.
 """
 
+from fastapi import HTTPException
 from core.database import supabase
 from modules.comics.service import update_cache
 
@@ -52,41 +53,58 @@ def create_genre(name: str):
     """
     Tạo một thể loại mới:
     1. Chuẩn hóa tên (cắt bỏ khoảng trắng thừa).
-    2. Kiểm tra xem thể loại đã tồn tại chưa (không phân biệt hoa thường). Nếu đã có thì trả về thể loại cũ.
+    2. Kiểm tra xem thể loại đã tồn tại chưa (không phân biệt hoa thường).
+       -> Nếu ĐÃ CÓ: Trả về thông báo lỗi thể loại đã tồn tại (HTTP 400).
     3. Chèn bản ghi mới vào bảng `genres`.
     4. Gán `comic_count = 0` (vì thể loại mới tạo chưa gắn với truyện nào) và cập nhật cache.
     """
     clean_name = name.strip()
+    if not clean_name:
+        raise HTTPException(status_code=400, detail="Tên thể loại không được để trống!")
+
     try:
-        # Kiểm tra trùng lặp tên thể loại
+        # 2. Kiểm tra xem thể loại đã tồn tại chưa (không phân biệt hoa thường)
         existing = supabase.table("genres").select("*").ilike("name", clean_name).execute()
         if existing.data:
-            genre = existing.data[0]
-            genre["comic_count"] = 0
-            return genre
+            # Thông báo thể loại đã tồn tại
+            existing_name = existing.data[0]["name"]
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Thể loại '{existing_name}' đã tồn tại trong hệ thống!"
+            )
             
-        # Chèn thể loại mới vào bảng genres
+        # 3. Chèn thể loại mới vào bảng genres
         res = supabase.table("genres").insert({"name": clean_name}).execute()
         if res.data:
             genre = res.data[0]
             genre["comic_count"] = 0  # Thể loại mới tạo nên số lượng truyện ban đầu bằng 0
             update_cache()
             return genre
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[Error] Error creating genre: {e}")
-        return None
-    return None
+        raise HTTPException(status_code=500, detail=f"Lỗi khi tạo thể loại: {str(e)}")
 
 def update_genre(genre_id: int, new_name: str):
     """
     Đổi tên thể loại theo `genre_id`:
     1. Chuẩn hóa tên mới.
-    2. Cập nhật cột `name` trong bảng `genres`.
-    3. Đếm lại số lượng truyện hiện tại của thể loại để gán vào `comic_count` trả về.
-    4. Cập nhật lại cache JSON.
+    2. Kiểm tra xem tên mới có bị trùng với thể loại khác không.
+    3. Cập nhật cột `name` trong bảng `genres`.
+    4. Đếm lại số lượng truyện hiện tại của thể loại để gán vào `comic_count` trả về.
+    5. Cập nhật lại cache JSON.
     """
     clean_name = new_name.strip()
+    if not clean_name:
+        raise HTTPException(status_code=400, detail="Tên thể loại không được để trống!")
+
     try:
+        # Kiểm tra xem tên mới có bị trùng với thể loại khác không
+        existing = supabase.table("genres").select("*").ilike("name", clean_name).neq("id", genre_id).execute()
+        if existing.data:
+            raise HTTPException(status_code=400, detail=f"Thể loại '{existing.data[0]['name']}' đã tồn tại!")
+
         res = supabase.table("genres").update({"name": clean_name}).eq("id", genre_id).execute()
         if res.data:
             update_cache()
@@ -98,10 +116,11 @@ def update_genre(genre_id: int, new_name: str):
             except:
                 genre["comic_count"] = 0
             return genre
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[Error] Error updating genre: {e}")
-        return None
-    return None
+        raise HTTPException(status_code=500, detail=f"Lỗi khi cập nhật thể loại: {str(e)}")
 
 def delete_genre(genre_id: int):
     """
