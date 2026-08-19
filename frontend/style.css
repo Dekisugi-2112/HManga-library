@@ -545,33 +545,6 @@ body {
     text-transform: capitalize;
 }
 
-.badge-status {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-}
-
-.badge-ongoing {
-    background: rgba(16, 185, 129, 0.25);
-    color: #6ee7b7;
-    border: 1px solid rgba(16, 185, 129, 0.4);
-}
-
-.badge-completed {
-    background: rgba(14, 165, 233, 0.25);
-    color: #7dd3fc;
-    border: 1px solid rgba(14, 165, 233, 0.4);
-}
-
-.badge-oneshot {
-    position: absolute;
-    top: 8px;
-    left: 8px;
-    background: rgba(245, 158, 11, 0.25);
-    color: #fde68a;
-    border: 1px solid rgba(245, 158, 11, 0.4);
-}
-
 .card-body {
     padding: 12px;
     display: flex;

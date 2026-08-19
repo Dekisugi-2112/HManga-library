@@ -38,16 +38,35 @@ def extract_gallery_id_from_url(source_url: str = None, cover_filename: str = No
             return parts[-2]
     return ""
 
+def clean_comic_dict(comic: dict) -> dict:
+    """
+    Loại bỏ hoàn toàn các trường cũ (status, type, personal_note, timestamp) khỏi dictionary truyện.
+    """
+    if not comic:
+        return comic
+    for field in ["type", "status", "personal_note", "created_at", "updated_at"]:
+        comic.pop(field, None)
+    return comic
+
+def clean_chapter_dict(chapter: dict) -> dict:
+    """
+    Loại bỏ các trường cũ (total_pages, created_at, updated_at) khỏi dictionary chương.
+    """
+    if not chapter:
+        return chapter
+    for field in ["total_pages", "created_at", "updated_at"]:
+        chapter.pop(field, None)
+    return chapter
+
 def get_all_comics(genre: str = None, q: str = None):
     """
     Lấy danh sách tất cả các bộ truyện trong thư viện:
-    - Sắp xếp theo ID tăng dần (1, 2, 3... theo thứ tự thêm vào).
     - Hỗ trợ lọc theo từ khóa tiêu đề (q) không phân biệt hoa thường.
     - Tự động map danh sách thể loại từ bảng `comic_genres` cho từng bộ truyện.
     - Hỗ trợ lọc theo tên thể loại (genre).
     """
     # 1. Truy vấn danh sách truyện từ bảng comics
-    query = supabase.table("comics").select("*").order("id", desc=False)
+    query = supabase.table("comics").select("id, title, author, cover_filename, source_url, gallery_id").order("id", desc=False)
     if q:
         query = query.ilike("title", f"%{q}%")
     
@@ -74,6 +93,7 @@ def get_all_comics(genre: str = None, q: str = None):
     # 3. Gắn danh sách thể loại và gallery_id vào từng object truyện
     result = []
     for comic in comics:
+        clean_comic_dict(comic)
         comic["genres"] = genres_map.get(comic["id"], [])
         comic["gallery_id"] = extract_gallery_id_from_url(comic.get("source_url"), comic.get("cover_filename"))
         # Nếu có lọc theo thể loại mà truyện không chứa thể loại đó thì bỏ qua
@@ -117,10 +137,11 @@ def get_comic_detail(comic_id):
         return None
 
     # 1. Lấy thông tin cơ bản từ bảng comics
-    response = supabase.table("comics").select("*").eq("id", real_id).execute()
+    response = supabase.table("comics").select("id, title, author, cover_filename, source_url, gallery_id").eq("id", real_id).execute()
     if not response.data:
         return None
     comic = response.data[0]
+    clean_comic_dict(comic)
     comic["gallery_id"] = extract_gallery_id_from_url(comic.get("source_url"), comic.get("cover_filename"))
     
     # 2. Lấy danh sách thể loại từ bảng comic_genres
@@ -133,11 +154,12 @@ def get_comic_detail(comic_id):
     
     # 3. Lấy danh sách các chapters thuộc bộ truyện
     try:
-        chapters_response = supabase.table("chapters").select("*").eq("comic_id", real_id).order("chapter_number").execute()
+        chapters_response = supabase.table("chapters").select("id, comic_id, chapter_number, title, base_url, start_page, end_page").eq("comic_id", real_id).order("chapter_number").execute()
         chapters = chapters_response.data or []
         for ch in chapters:
+            clean_chapter_dict(ch)
             s_page = ch.get("start_page", 1) or 1
-            e_page = ch.get("end_page", ch.get("total_pages", s_page)) or s_page
+            e_page = ch.get("end_page", s_page) or s_page
             ch["start_page"] = s_page
             ch["end_page"] = e_page
             ch["total_pages"] = max(1, e_page - s_page + 1)
@@ -338,15 +360,23 @@ def check_comic_by_gallery_id(gallery_id: str):
 def update_cache():
     """
     Tạo hoặc cập nhật file JSON cache (`cache/comics_cache.json`).
-    Lưu trữ danh sách toàn bộ truyện và chương nhằm hỗ trợ xem nhanh hoặc tra cứu ngoại tuyến.
+    Lưu trữ danh sách toàn bộ truyện và chương chuẩn, loại bỏ hoàn toàn các trường cũ (status, type...).
     """
     try:
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
         comics = get_all_comics()
         for comic in comics:
+            clean_comic_dict(comic)
             try:
-                chapters = supabase.table("chapters").select("*").eq("comic_id", comic["id"]).order("chapter_number").execute()
-                comic["chapters"] = chapters.data or []
+                chapters = supabase.table("chapters").select("id, comic_id, chapter_number, title, base_url, start_page, end_page").eq("comic_id", comic["id"]).order("chapter_number").execute()
+                ch_list = chapters.data or []
+                for ch in ch_list:
+                    clean_chapter_dict(ch)
+                    s_page = ch.get("start_page", 1) or 1
+                    e_page = ch.get("end_page", s_page) or s_page
+                    ch["start_page"] = s_page
+                    ch["end_page"] = e_page
+                comic["chapters"] = ch_list
             except:
                 comic["chapters"] = []
             
