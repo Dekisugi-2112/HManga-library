@@ -132,6 +132,16 @@
                 console.warn('Lỗi nạp tác giả tìm kiếm:', err);
             }
 
+            // Đọc tham số tìm kiếm từ URL Query (nếu có)
+            const urlParams = new URLSearchParams(window.location.search);
+            const qParam = urlParams.get('q') || urlParams.get('s');
+            const authorParam = urlParams.get('author');
+            const genreParam = urlParams.get('genre');
+
+            if (qParam) document.getElementById('search-q').value = qParam;
+            if (authorParam) document.getElementById('search-author').value = authorParam;
+            if (genreParam) document.getElementById('search-genre').value = genreParam;
+
             // Thực hiện tìm kiếm ban đầu
             doSearch();
         });

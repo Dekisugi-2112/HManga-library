@@ -32,6 +32,21 @@ def get_chapters(comic_id):
         ch["total_pages"] = max(1, e_page - s_page + 1)
     return chapters
 
+def get_chapter_by_id(chapter_id: int):
+    """
+    Lấy thông tin của một chapter theo chapter_id.
+    """
+    response = supabase.table("chapters").select("*").eq("id", chapter_id).execute()
+    if not response.data:
+        return None
+    ch = response.data[0]
+    s_page = ch.get("start_page", 1) or 1
+    e_page = ch.get("end_page", ch.get("total_pages", 1)) or s_page
+    ch["start_page"] = s_page
+    ch["end_page"] = e_page
+    ch["total_pages"] = max(1, e_page - s_page + 1)
+    return ch
+
 def create_chapter(comic_id, chapter_data: ChapterCreate):
     """
     Tạo mới một chapter gắn liền với bộ truyện (`comic_id`).

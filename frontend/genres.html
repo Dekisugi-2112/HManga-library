@@ -186,7 +186,7 @@
 
                 // Render danh sách các thẻ thể loại
                 listEl.innerHTML = allGenres.map(genre => `
-                    <div class="genre-item-card ${selectedGenreId === genre.id ? 'active' : ''}" onclick="selectGenre(${genre.id}, '${genre.name}')">
+                    <div class="genre-item-card ${selectedGenreId === genre.id ? 'active' : ''}" data-id="${genre.id}" onclick="selectGenre(${genre.id}, '${genre.name}')">
                         <div class="genre-name-box">
                             <span>🏷️ ${genre.name}</span>
                             <span class="genre-count-badge">${genre.comic_count} truyện</span>
@@ -209,7 +209,8 @@
         async function selectGenre(genreId, genreName) {
             selectedGenreId = genreId;
             document.querySelectorAll('.genre-item-card').forEach(el => el.classList.remove('active'));
-            event?.currentTarget?.classList.add('active');
+            const targetCard = document.querySelector(`.genre-item-card[data-id="${genreId}"]`);
+            if (targetCard) targetCard.classList.add('active');
 
             const section = document.getElementById('genre-comics-section');
             const grid = document.getElementById('genre-comics-grid');

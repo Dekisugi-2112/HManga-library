@@ -252,6 +252,15 @@ const api = {
     },
 
     /**
+     * Lấy thông tin chi tiết một chương theo ID
+     */
+    async getChapter(chapterId) {
+        const res = await fetch(`${API_BASE}/api/chapters/${chapterId}`);
+        if (!res.ok) throw new Error('Không tìm thấy chương');
+        return res.json();
+    },
+
+    /**
      * Lấy danh sách toàn bộ URL ảnh đọc truyện của một chương (từ trang 1 đến total_pages)
      */
     async getChapterPages(chapterId) {
@@ -345,6 +354,13 @@ const api = {
             throw new Error(errData.detail || 'Lỗi khi cập nhật thể loại');
         }
         return res.json();
+    },
+
+    /**
+     * Đổi tên thể loại theo ID (alias cho updateGenre)
+     */
+    async renameGenre(genreId, name) {
+        return this.updateGenre(genreId, name);
     },
 
     /**

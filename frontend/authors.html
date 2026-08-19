@@ -175,17 +175,19 @@
                 }
 
                 // Render danh sách các thẻ tác giả
-                listEl.innerHTML = allAuthors.map(item => `
-                    <div class="author-item-card ${selectedAuthorName === item.name ? 'active' : ''}" onclick="selectAuthor('${item.name}')">
+                listEl.innerHTML = allAuthors.map(item => {
+                    const safeAuthor = (item.name || '').replace(/"/g, '&quot;');
+                    return `
+                    <div class="author-item-card ${selectedAuthorName === item.name ? 'active' : ''}" data-author="${safeAuthor}" onclick="selectAuthor('${safeAuthor}')">
                         <div class="author-name-box">
                             <span>✍️ ${item.name}</span>
                             <span class="author-count-badge">${item.comic_count} truyện</span>
                         </div>
                         <div onclick="event.stopPropagation();">
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="openRenameModal('${item.name}')" title="Đổi tên tác giả">✏️ Sửa</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="openRenameModal('${safeAuthor}')" title="Đổi tên tác giả">✏️ Sửa</button>
                         </div>
                     </div>
-                `).join('');
+                `}).join('');
 
             } catch (err) {
                 listEl.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 30px 0; color: var(--danger);">❌ Lỗi tải tác giả: ${err.message}</div>`;
@@ -198,7 +200,8 @@
         async function selectAuthor(authorName) {
             selectedAuthorName = authorName;
             document.querySelectorAll('.author-item-card').forEach(el => el.classList.remove('active'));
-            event?.currentTarget?.classList.add('active');
+            const targetCard = Array.from(document.querySelectorAll('.author-item-card')).find(el => el.getAttribute('data-author') === authorName);
+            if (targetCard) targetCard.classList.add('active');
 
             const section = document.getElementById('author-comics-section');
             const grid = document.getElementById('author-comics-grid');

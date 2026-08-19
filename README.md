@@ -1,6 +1,13 @@
 # 📚 HManga-library
-
+uvicorn main:app --reload
 Website đọc truyện tranh cá nhân — lưu trữ và đọc manga/manhwa/manhua từ nhiều nguồn (tối ưu cho hentaifox).
+
+## web
+- Hentaifox
+- NHentai
+- ImHentai
+- AsmHentai
+
 
 ## 🏗️ Kiến trúc
 

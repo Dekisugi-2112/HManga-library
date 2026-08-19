@@ -1,4 +1,4 @@
-﻿<!--
+<!--
   HManga Library — Trình Đọc Truyện (reader.html)
   ===============================================
   - Chế độ Cuộn dọc: Xem danh sách toàn bộ trang ảnh liên tục.
@@ -111,24 +111,45 @@
                 pageUrls = await api.getChapterPages(chapterId);
 
                 // 2. Lấy thông tin truyện và định vị chương trước / sau
-                const allComics = await api.getComics();
                 let foundComic = null;
                 let foundChapter = null;
+                let paramComicId = parseInt(urlParams.get('comic_id'), 10);
 
-                for (const c of allComics) {
-                    const detail = await api.getComic(c.id);
-                    const ch = detail.chapters?.find(item => item.id === chapterId);
-                    if (ch) {
-                        foundComic = detail;
-                        foundChapter = ch;
-                        break;
+                if (paramComicId) {
+                    try {
+                        foundComic = await api.getComic(paramComicId);
+                        foundChapter = foundComic?.chapters?.find(item => item.id === chapterId);
+                    } catch {}
+                }
+
+                if (!foundComic) {
+                    try {
+                        const chInfo = await api.getChapter(chapterId);
+                        if (chInfo && chInfo.comic_id) {
+                            foundComic = await api.getComic(chInfo.comic_id);
+                            foundChapter = chInfo;
+                        }
+                    } catch {}
+                }
+
+                // Dự phòng quét danh sách truyện nếu cần
+                if (!foundComic) {
+                    const allComics = await api.getComics();
+                    for (const c of allComics) {
+                        const detail = await api.getComic(c.id);
+                        const ch = detail.chapters?.find(item => item.id === chapterId);
+                        if (ch) {
+                            foundComic = detail;
+                            foundChapter = ch;
+                            break;
+                        }
                     }
                 }
 
                 if (foundComic) {
                     comicId = foundComic.id;
                     document.getElementById('comic-header-title').textContent = foundComic.title;
-                    document.getElementById('chapter-header-badge').textContent = `• Chương ${foundChapter.chapter_number}`;
+                    document.getElementById('chapter-header-badge').textContent = `• Chương ${foundChapter?.chapter_number || ''}`;
                     document.getElementById('btn-back-detail').href = `detail.html?id=${comicId}`;
                     document.getElementById('nav-comic-center').href = `detail.html?id=${comicId}`;
 
@@ -139,22 +160,22 @@
                     if (curIndex > 0) {
                         prevChapterId = sortedChaps[curIndex - 1].id;
                         document.getElementById('header-prev-chap').style.display = 'inline-flex';
-                        document.getElementById('header-prev-chap').onclick = () => { window.location.href = `reader.html?id=${prevChapterId}`; };
+                        document.getElementById('header-prev-chap').onclick = () => { window.location.href = `reader.html?id=${prevChapterId}&comic_id=${comicId}`; };
                         
                         const bottomPrev = document.getElementById('nav-prev-chap');
                         bottomPrev.style.visibility = 'visible';
-                        bottomPrev.onclick = () => { window.location.href = `reader.html?id=${prevChapterId}`; };
+                        bottomPrev.onclick = () => { window.location.href = `reader.html?id=${prevChapterId}&comic_id=${comicId}`; };
                     }
 
                     // Thiết lập Chương sau
                     if (curIndex < sortedChaps.length - 1) {
                         nextChapterId = sortedChaps[curIndex + 1].id;
                         document.getElementById('header-next-chap').style.display = 'inline-flex';
-                        document.getElementById('header-next-chap').onclick = () => { window.location.href = `reader.html?id=${nextChapterId}`; };
+                        document.getElementById('header-next-chap').onclick = () => { window.location.href = `reader.html?id=${nextChapterId}&comic_id=${comicId}`; };
                         
                         const bottomNext = document.getElementById('nav-next-chap');
                         bottomNext.style.visibility = 'visible';
-                        bottomNext.onclick = () => { window.location.href = `reader.html?id=${nextChapterId}`; };
+                        bottomNext.onclick = () => { window.location.href = `reader.html?id=${nextChapterId}&comic_id=${comicId}`; };
                     }
                 }
 
@@ -217,7 +238,7 @@
             } else if (nextChapterId) {
                 // Đã đến trang cuối cùng -> hỏi chuyển chương sau
                 if (confirm('Bạn đã đọc hết chương này. Bạn có muốn chuyển sang Chương sau không?')) {
-                    window.location.href = `reader.html?id=${nextChapterId}`;
+                    window.location.href = `reader.html?id=${nextChapterId}${comicId ? '&comic_id=' + comicId : ''}`;
                 }
             }
         }
@@ -229,7 +250,7 @@
             } else if (prevChapterId) {
                 // Đang ở trang 1 -> hỏi về chương trước
                 if (confirm('Bạn đang ở đầu chương. Bạn có muốn quay lại Chương trước không?')) {
-                    window.location.href = `reader.html?id=${prevChapterId}`;
+                    window.location.href = `reader.html?id=${prevChapterId}${comicId ? '&comic_id=' + comicId : ''}`;
                 }
             }
         }
