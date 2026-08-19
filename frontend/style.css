@@ -863,7 +863,7 @@ body {
     border-top: 1px solid var(--border-color);
 }
 
-/* ==================== READER STYLES (Chuẩn hentairead) ==================== */
+/* ==================== READER STYLES (Chuẩn hentairead & Full Viewport) ==================== */
 
 /* Thanh công cụ cố định trên cùng khi đọc truyện */
 .reader-toolbar {
@@ -885,6 +885,20 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 12px;
+}
+
+/* Badge hiển thị số trang ở góc trên bên phải */
+.page-badge-pill {
+    background: rgba(99, 102, 241, 0.2);
+    border: 1px solid rgba(99, 102, 241, 0.4);
+    color: #c7d2fe;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: monospace;
+    padding: 4px 12px;
+    border-radius: 20px;
+    white-space: nowrap;
 }
 
 /* Khung bao ngoài toàn bộ nội dung đọc truyện */
@@ -899,7 +913,7 @@ body {
     background: transparent;
 }
 
-/* ==================== 1. KÍCH THƯỚC ẢNH CHẾ ĐỘ CUỘN DỌC (SCROLL MODE) ==================== */
+/* ==================== 1. CHẾ ĐỘ CUỘN DỌC (SCROLL MODE) ==================== */
 .scroll-mode-view {
     display: flex;
     flex-direction: column;
@@ -918,60 +932,102 @@ body {
     padding: 0;
 }
 
-/* 👉 CHỈNH SỬA KÍCH THƯỚC ẢNH CUỘN DỌC TẠI ĐÂY: */
+/* 👉 KÍCH THƯỚC ẢNH CUỘN DỌC */
 .scroll-mode-view .reading-image {
     display: block;
     margin: 0 auto;
     width: 100%;
     height: auto;
-    max-height: 100vh;  /* Chiều cao tối đa khi cuộn (vd: 100vh, 90vh, 850px...) */
-    max-width: 100%;    /* Chiều rộng tối đa khi cuộn (vd: 100%, 900px, 800px...) */
+    max-height: 100vh;  /* Chiều cao tối đa khi cuộn (vd: 100vh, 90vh...) */
+    max-width: 100%;    /* Chiều rộng tối đa khi cuộn (vd: 100%, 900px...) */
     object-fit: contain;
 }
 
-/* ==================== 2. KÍCH THƯỚC ẢNH CHẾ ĐỘ TỪNG TRANG (PAGE MODE) ==================== */
+/* ==================== 2. CHẾ ĐỘ TỪNG TRANG (PAGE MODE - FULL VIEWPORT) ==================== */
 .page-mode-view {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
     width: 100%;
-    min-height: calc(100vh - 60px);
-    padding: 8px 0 20px;
+    height: calc(100vh - 54px);
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    user-select: none;
 }
 
 /* Khung chứa ảnh đơn lẻ căn giữa màn hình */
 .page-mode-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 100%;
-    min-height: calc(100vh - 120px);
 }
 
-/* 👉 CHỈNH SỬA KÍCH THƯỚC ẢNH TỪNG TRANG TẠI ĐÂY: */
-.page-mode-view .reading-image {
+/* 👉 KÍCH THƯỚC ẢNH TỪNG TRANG: Vừa khít toàn màn hình, không cần cuộn */
+.page-mode-view .page-reading-image {
+    max-height: calc(100vh - 58px);
+    height: calc(100vh - 58px);
+    max-width: 100vw;
+    width: auto;
+    object-fit: contain;
     display: block;
     margin: 0 auto;
-    width: auto;
-    height: auto;
-    max-height: 100vh;  /* Chiều cao tối đa khi đọc từng trang (vd: 100vh, 95vh, 90vh...) */
-    max-width: 100%;    /* Chiều rộng tối đa khi đọc từng trang (vd: 100%, 90vw, 850px...) */
-    object-fit: contain;
-    cursor: pointer;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.9);
-    border-radius: 3px;
+    border-radius: 2px;
 }
 
-/* Nút điều hướng chuyển trang (Trang trước / Trang sau) */
-.page-nav-controls {
+/* 2 Vùng nhấp chuyển trang Trái / Phải */
+.click-zone {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 50%;
+    z-index: 10;
     display: flex;
     align-items: center;
-    gap: 16px;
-    margin-top: 14px;
+    opacity: 0;
+    transition: opacity 0.2s ease, background 0.2s ease;
 }
 
-/* Thanh điều hướng chương (Chương trước / Chương sau) ở cuối trang */
+.click-zone-left {
+    left: 0;
+    cursor: w-resize;
+    justify-content: flex-start;
+    padding-left: 20px;
+}
+
+.click-zone-right {
+    right: 0;
+    cursor: e-resize;
+    justify-content: flex-end;
+    padding-right: 20px;
+}
+
+.click-zone:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.click-hint-icon {
+    font-size: 36px;
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(6px);
+}
+
+/* Thanh điều hướng chương (Chương trước / Chương sau) ở cuối trang cuộn */
 .chapter-nav-bar {
     display: flex;
     justify-content: space-between;
