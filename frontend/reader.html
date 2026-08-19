@@ -21,22 +21,48 @@
     <style>
         body {
             background-color: #030712;
+            margin: 0;
+            padding: 0;
         }
-        /* Khung bao bọc từng trang ảnh trong chế độ cuộn */
+        /* Khung bao bọc từng trang ảnh trong chế độ cuộn - FULL MÀN HÌNH 100% */
         .reader-page-wrapper {
             position: relative;
-            background: #090d16;
-            margin-bottom: 2px;
+            background: #030712;
+            margin-bottom: 0;
             display: flex;
             justify-content: center;
             align-items: center;
+            width: 100%;
             min-height: 200px;
         }
         .reader-page-wrapper img {
             width: 100%;
-            max-width: 860px;
+            max-width: 100%;
             height: auto;
             display: block;
+        }
+
+        /* Khung hiển thị chế độ từng trang - FULL MÀN HÌNH LINH HOẠT */
+        .page-mode-wrapper {
+            position: relative;
+            width: 100%;
+            min-height: calc(100vh - 140px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px 0;
+        }
+        #single-page-img {
+            max-width: 100vw;
+            max-height: calc(100vh - 130px);
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto;
+            cursor: pointer;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.95);
+            border-radius: 4px;
         }
     </style>
 </head>
@@ -63,28 +89,28 @@
 
     <!-- 2. Khu vực hiển thị ảnh truyện (Reader Main Content) -->
     <div class="reader-container">
-        <!-- Chế độ 1: Xem cuộn dọc toàn bộ các trang -->
+        <!-- Chế độ 1: Xem cuộn dọc toàn bộ các trang (Full Screen Width) -->
         <div id="scroll-view" class="scroll-mode-view">
             <div style="text-align: center; padding: 80px 0; color: var(--text-dim);">⏳ Đang kết nối và tải các trang ảnh...</div>
         </div>
 
-        <!-- Chế độ 2: Xem từng trang đơn lẻ -->
+        <!-- Chế độ 2: Xem từng trang đơn lẻ (Full Screen Height & Width) -->
         <div id="page-view" class="page-mode-view" style="display: none;">
-            <div style="position: relative; width: 100%; max-width: 860px; text-align: center;">
-                <img id="single-page-img" src="" alt="Trang truyện" referrerpolicy="no-referrer" style="display: none;">
+            <div class="page-mode-wrapper">
+                <img id="single-page-img" src="" alt="Trang truyện" referrerpolicy="no-referrer" style="display: none;" title="Bấm vào ảnh để chuyển sang trang sau">
             </div>
             
             <!-- Bộ điều hướng chuyển trang -->
             <div class="page-nav-controls">
                 <button type="button" id="btn-prev-page" class="btn btn-secondary btn-sm">⇦ Trang trước</button>
-                <span id="page-counter" style="font-size: 14px; font-weight: 600; font-family: monospace; color: #818cf8;">1 / 1</span>
+                <span id="page-counter" style="font-size: 15px; font-weight: 700; font-family: monospace; color: #818cf8;">1 / 1</span>
                 <button type="button" id="btn-next-page" class="btn btn-secondary btn-sm">Trang sau ⇨</button>
             </div>
-            <p style="font-size: 12px; color: var(--text-dim); margin-top: 8px;">(Mẹo: Bạn có thể dùng phím mũi tên ← và → trên bàn phím)</p>
+            <p style="font-size: 12px; color: var(--text-dim); margin-top: 8px;">(Mẹo: Bấm trực tiếp vào ảnh hoặc dùng phím mũi tên ← và → trên bàn phím)</p>
         </div>
 
         <!-- Thanh chuyển Chương trước / Chương sau ở cuối trang -->
-        <div style="max-width: 860px; margin: 40px auto 20px; padding: 0 16px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="max-width: 900px; margin: 40px auto 30px; padding: 0 16px; display: flex; justify-content: space-between; align-items: center;">
             <button type="button" id="nav-prev-chap" class="btn btn-secondary" style="visibility: hidden;">⇦ Chương trước</button>
             <a id="nav-comic-center" href="index.html" class="btn btn-secondary btn-sm" style="color: var(--text-muted);">📚 Về bộ truyện</a>
             <button type="button" id="nav-next-chap" class="btn btn-primary" style="visibility: hidden;">Chương sau ⇨</button>
@@ -266,6 +292,15 @@
                     currentPageIndex--;
                     updateSinglePageView();
                 }
+            }
+        });
+
+        // Bấm trực tiếp vào ảnh ở chế độ từng trang để chuyển sang trang kế tiếp
+        document.getElementById('single-page-img').addEventListener('click', () => {
+            if (currentPageIndex < pageUrls.length - 1) {
+                currentPageIndex++;
+                updateSinglePageView();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         });
 
