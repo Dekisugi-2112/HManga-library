@@ -30,13 +30,18 @@ async def download_cover(url: str, comic_id: int):
     # Tạo thư mục nếu chưa tồn tại
     COVER_DIR.mkdir(parents=True, exist_ok=True)
     
-    # Tách gallery_id và phần mở rộng (extension) từ URL
-    # Ví dụ URL mẫu: https://i3.hentaifox.com/004/4029076/1t.jpg -> gallery_id = 4029076, ext = jpg
-    parts = url.split("/")
+    # Tách folder, gallery_id và phần mở rộng (extension) từ URL
+    # Ví dụ URL mẫu: https://i.hentaifox.com/001/48410/236t.jpg -> gallery_id = 001-48410, ext = jpg
+    parts = [p for p in url.split("/") if p]
     if len(parts) < 2:
         raise HTTPException(status_code=400, detail="Invalid URL format")
         
-    gallery_id = parts[-2]
+    # Nếu URL có cấu trúc /folder/gallery_id/file (VD: /001/48410/236t.jpg) -> kết hợp thành '001-48410'
+    if len(parts) >= 3 and parts[-3].isdigit() and parts[-2].isdigit():
+        gallery_id = f"{parts[-3]}-{parts[-2]}"
+    else:
+        gallery_id = parts[-2]
+        
     ext = parts[-1].split(".")[-1] if "." in parts[-1] else "jpg"
     filename = f"{gallery_id}.{ext}"
     filepath = COVER_DIR / filename

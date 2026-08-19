@@ -314,8 +314,15 @@ function parseHentaifoxUrl(url) {
     const suffix = match[3] || '';
     const extension = match[4];
 
-    const galleryMatch = prefix.match(/\/(\d+)\/$/);
-    const galleryId = galleryMatch ? galleryMatch[1] : '';
+    // Hỗ trợ trích xuất cả folder và gallery_id (VD: /001/48410/ -> "001-48410", hoặc /4029076/ -> "4029076")
+    const folderGalleryMatch = prefix.match(/\/(\d+)\/(\d+)\/$/);
+    let galleryId = '';
+    if (folderGalleryMatch) {
+        galleryId = `${folderGalleryMatch[1]}-${folderGalleryMatch[2]}`;
+    } else {
+        const singleMatch = prefix.match(/\/(\d+)\/$/);
+        galleryId = singleMatch ? singleMatch[1] : '';
+    }
 
     return { prefix, pageNumber, suffix, extension, galleryId };
 }

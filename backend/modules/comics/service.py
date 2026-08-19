@@ -213,11 +213,15 @@ def delete_comic(comic_id: int):
 def check_comic_by_gallery_id(gallery_id: str):
     """
     Kiểm tra xem truyện tranh từ hentaifox đã tồn tại trong thư viện chưa
-    thông qua ID gallery (VD: 4029076).
-    - Tra cứu chuỗi `/{gallery_id}/` trong cột source_url.
+    thông qua ID gallery (VD: '001-48410' hoặc '48410').
+    - Tra cứu chuỗi `/001/48410/` hoặc `/{gallery_id}/` trong cột source_url.
     - Nếu đã có, trả về object chi tiết truyện kèm danh sách chương để người dùng có thể thêm tiếp chương.
     """
-    response = supabase.table("comics").select("*").ilike("source_url", f"%/{gallery_id}/%").execute()
+    # Nếu gallery_id có dạng '001-48410' -> chuyển thành path '/001/48410/'
+    url_pattern = f"%/{gallery_id.replace('-', '/')}/%"
+    response = supabase.table("comics").select("*").ilike("source_url", url_pattern).execute()
+    if not response.data and "-" not in gallery_id:
+        response = supabase.table("comics").select("*").ilike("source_url", f"%/{gallery_id}/%").execute()
     if response.data:
         comic = response.data[0]
         comic["genres"] = []
