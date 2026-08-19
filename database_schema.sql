@@ -8,17 +8,25 @@
 -- 1. BẢNG TRUYỆN TRANH (comics)
 -- Lưu thông tin cơ bản của từng bộ truyện trong thư viện:
 -- - id: Khóa chính tự động tăng theo thứ tự thêm vào (1, 2, 3...)
+-- - gallery_id: Mã ID định dạng 'xxx-xxxxx' (VD: '001-48410')
 -- - title: Tên bộ truyện
 -- - author: Tên tác giả
--- - cover_filename: Tên file ảnh bìa lưu tại local (VD: 4029076.jpg)
+-- - cover_filename: Tên file ảnh bìa lưu tại local (VD: 001-48410.jpg)
 -- - source_url: Đường link gốc tham khảo từ hentaifox
 CREATE TABLE IF NOT EXISTS public.comics (
     id SERIAL PRIMARY KEY,
+    gallery_id VARCHAR(50),
     title VARCHAR(255) NOT NULL,
     author VARCHAR(255),
     cover_filename VARCHAR(100),
     source_url TEXT
 );
+
+-- MIGRATION MỚI NHẤT: Thêm cột gallery_id vào bảng comics nếu chưa có
+ALTER TABLE public.comics ADD COLUMN IF NOT EXISTS gallery_id VARCHAR(50);
+UPDATE public.comics 
+SET gallery_id = SPLIT_PART(cover_filename, '.', 1) 
+WHERE gallery_id IS NULL AND cover_filename IS NOT NULL AND cover_filename != '';
 
 -- Dọn dẹp các cột cũ không sử dụng (nếu database đã tồn tại từ trước)
 ALTER TABLE public.comics DROP COLUMN IF EXISTS type;

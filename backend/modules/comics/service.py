@@ -147,7 +147,21 @@ def create_comic(comic_data: ComicCreate):
             
     # Bước 2: Thêm truyện vào bảng comics (loại bỏ trường genres dạng mảng trước khi insert vào table comics)
     comic_dict = comic_data.dict(exclude={"genres"})
-    response = supabase.table("comics").insert(comic_dict).execute()
+    
+    # Tự động gán gallery_id theo định dạng 'xxx-xxxxx' nếu chưa có
+    if not comic_dict.get("gallery_id") and comic_dict.get("source_url"):
+        comic_dict["gallery_id"] = extract_gallery_id_from_url(comic_dict.get("source_url"))
+        
+    try:
+        response = supabase.table("comics").insert(comic_dict).execute()
+    except Exception as e:
+        # Nếu cột gallery_id chưa có trong bảng Supabase, bỏ qua và insert bình thường
+        if "gallery_id" in str(e):
+            comic_dict.pop("gallery_id", None)
+            response = supabase.table("comics").insert(comic_dict).execute()
+        else:
+            raise e
+            
     new_comic = response.data[0]
     
     # Bước 3: Thêm các bản ghi liên kết vào bảng trung gian comic_genres

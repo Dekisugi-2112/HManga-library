@@ -14,11 +14,13 @@ class ComicBase(BaseModel):
     - title: Tên bộ truyện (bắt buộc)
     - author: Tên tác giả (tùy chọn)
     - source_url: Link gốc tham khảo từ hentaifox (tùy chọn)
+    - gallery_id: Mã ID định dạng 'xxx-xxxxx' (VD: '001-48410')
     - genres: Danh sách tên các thể loại được chọn (mặc định rỗng)
     """
     title: str
     author: Optional[str] = None
     source_url: Optional[str] = None
+    gallery_id: Optional[str] = None
     genres: List[str] = []
 
 class ComicCreate(ComicBase):
@@ -36,6 +38,7 @@ class ComicUpdate(BaseModel):
     title: Optional[str] = None
     author: Optional[str] = None
     source_url: Optional[str] = None
+    gallery_id: Optional[str] = None
     genres: Optional[List[str]] = None
 
 class ComicResponse(BaseModel):
