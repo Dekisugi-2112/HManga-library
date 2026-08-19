@@ -20,6 +20,24 @@ from modules.comics.schemas import ComicCreate, ComicUpdate
 CACHE_DIR = Path(__file__).parent.parent.parent / "cache"
 CACHE_FILE = CACHE_DIR / "comics_cache.json"
 
+def extract_gallery_id_from_url(source_url: str = None, cover_filename: str = None) -> str:
+    """
+    Trích xuất mã Gallery ID định dạng 'xxx-xxxxx' (VD: '001-48410').
+    Ưu tiên bóc tách từ cover_filename hoặc từ source_url.
+    """
+    if cover_filename:
+        name_without_ext = cover_filename.rsplit(".", 1)[0]
+        if "-" in name_without_ext or name_without_ext.isdigit():
+            return name_without_ext
+
+    if source_url:
+        parts = [p for p in source_url.split("/") if p]
+        if len(parts) >= 3 and parts[-3].isdigit() and parts[-2].isdigit():
+            return f"{parts[-3]}-{parts[-2]}"
+        elif len(parts) >= 2 and parts[-2].isdigit():
+            return parts[-2]
+    return ""
+
 def get_all_comics(genre: str = None, q: str = None):
     """
     Lấy danh sách tất cả các bộ truyện trong thư viện:
@@ -53,10 +71,11 @@ def get_all_comics(genre: str = None, q: str = None):
     except Exception as e:
         print(f"[Warning] Error fetching comic_genres: {e}")
         
-    # 3. Gắn danh sách thể loại vào từng object truyện và lọc theo thể loại nếu được yêu cầu
+    # 3. Gắn danh sách thể loại và gallery_id vào từng object truyện
     result = []
     for comic in comics:
         comic["genres"] = genres_map.get(comic["id"], [])
+        comic["gallery_id"] = extract_gallery_id_from_url(comic.get("source_url"), comic.get("cover_filename"))
         # Nếu có lọc theo thể loại mà truyện không chứa thể loại đó thì bỏ qua
         if genre and genre not in comic["genres"]:
             continue
@@ -67,7 +86,7 @@ def get_all_comics(genre: str = None, q: str = None):
 def get_comic_detail(comic_id: int):
     """
     Lấy thông tin chi tiết của 1 bộ truyện theo ID:
-    - Thông tin truyện cơ bản (id, title, author, cover_filename, source_url).
+    - Thông tin truyện cơ bản (id, gallery_id, title, author, cover_filename, source_url).
     - Danh sách thể loại (genres) của bộ truyện.
     - Danh sách các chương (chapters) đã sắp xếp theo thứ tự chapter_number tăng dần.
     """
@@ -76,6 +95,7 @@ def get_comic_detail(comic_id: int):
     if not response.data:
         return None
     comic = response.data[0]
+    comic["gallery_id"] = extract_gallery_id_from_url(comic.get("source_url"), comic.get("cover_filename"))
     
     # 2. Lấy danh sách thể loại từ bảng comic_genres
     comic["genres"] = []
@@ -224,6 +244,7 @@ def check_comic_by_gallery_id(gallery_id: str):
         response = supabase.table("comics").select("*").ilike("source_url", f"%/{gallery_id}/%").execute()
     if response.data:
         comic = response.data[0]
+        comic["gallery_id"] = extract_gallery_id_from_url(comic.get("source_url"), comic.get("cover_filename"))
         comic["genres"] = []
         try:
             genres_response = supabase.table("comic_genres").select("genres(name)").eq("comic_id", comic["id"]).execute()

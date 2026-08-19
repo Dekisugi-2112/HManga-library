@@ -42,9 +42,11 @@ class ComicResponse(BaseModel):
     """
     Schema định dạng dữ liệu một bộ truyện khi trả về danh sách cho client:
     - id: Khóa chính tự tăng của bộ truyện
-    - cover_filename: Tên file ảnh bìa lưu tại local (VD: 4029076.jpg)
+    - gallery_id: Mã ID định dạng 'xxx-xxxxx' (VD: '001-48410')
+    - cover_filename: Tên file ảnh bìa lưu tại local (VD: 001-48410.jpg)
     """
     id: int
+    gallery_id: Optional[str] = None
     title: str
     author: Optional[str] = None
     source_url: Optional[str] = None

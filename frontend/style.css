@@ -470,6 +470,23 @@ body {
     transition: transform 0.3s ease;
 }
 
+.card-id-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(10, 15, 30, 0.85);
+    backdrop-filter: blur(4px);
+    color: #c7d2fe;
+    font-family: monospace;
+    font-size: 11px;
+    font-weight: 700;
+    border: 1px solid rgba(99, 102, 241, 0.4);
+    padding: 3px 7px;
+    border-radius: 6px;
+    z-index: 2;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
 .comic-card:hover .card-thumb {
     transform: scale(1.04);
 }

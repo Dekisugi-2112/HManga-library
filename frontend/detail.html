@@ -285,8 +285,8 @@
                             <img src="${coverUrl}" alt="${currentComic.title}" class="detail-cover" referrerpolicy="no-referrer" onerror="this.src='rem.jpg'">
                         </div>
                         <div class="detail-info">
-                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-                                <span class="badge" style="background: rgba(99, 102, 241, 0.15); color: #a5b4fc; font-family: monospace;">#${currentComic.id}</span>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
+                                <span class="badge" style="background: rgba(99, 102, 241, 0.2); color: #c7d2fe; font-family: monospace; font-weight: 700; font-size: 13px;">ID: ${currentComic.gallery_id || currentComic.id}</span>
                                 <h1 style="font-size: 24px; font-weight: 800; color: var(--text-main);">${currentComic.title}</h1>
                             </div>
                             <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 12px;">Tác giả: <a href="authors.html" style="color: var(--text-main); font-weight: 500; text-decoration: none;">✍️ ${currentComic.author || 'Chưa rõ'}</a></p>

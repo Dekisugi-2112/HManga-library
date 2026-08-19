@@ -227,6 +227,7 @@
                     return `
                         <a href="detail.html?id=${comic.id}" class="comic-card">
                             <div class="card-thumb-wrapper">
+                                ${comic.gallery_id ? `<span class="card-id-badge">${comic.gallery_id}</span>` : ''}
                                 <img src="${coverUrl}" alt="${comic.title}" class="card-thumb" referrerpolicy="no-referrer" onerror="this.src='rem.jpg'">
                             </div>
                             <div class="card-body">
