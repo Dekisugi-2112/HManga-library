@@ -1,285 +1,178 @@
-<!--
-  HManga Library — Trình Đọc Truyện (reader.html)
-  ===============================================
-  Nhiệm vụ:
-  - Hiển thị và đọc truyện với 2 chế độ linh hoạt:
-    1. Chế độ Cuộn dọc (Webtoon / Long Strip): Xem toàn bộ trang ảnh liên tục, hỗ trợ lazy-loading.
-    2. Chế độ Từng trang (Single Page): Xem từng trang một, chuyển trang bằng nút bấm hoặc phím mũi tên.
-  - Thanh công cụ cố định trên cùng (Sticky Toolbar): hiển thị tên truyện, số chapter, nút quay về và nút đổi chế độ.
-  - Thanh điều hướng chuyển nhanh sang Chương trước / Chương sau ở cuối trang.
+﻿<!--
+  HManga Library - Trinh Doc Truyen (reader.html)
+  Che do doc: 1. Cuon doc  2. Tung trang
+  Kich thuoc anh: aspect-ratio goc, max-height=100vh, max-width=100%, object-contain (chuan hentairead)
 -->
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đọc Truyện — HManga Library</title>
-    <!-- Favicon website -->
+    <title>Doc Truyen - HManga Library</title>
     <link rel="icon" type="image/jpeg" href="rem.jpg">
-    <!-- File stylesheet dùng chung -->
     <link rel="stylesheet" href="style.css">
     <style>
-        body {
-            background-color: #030712;
-            margin: 0;
-            padding: 0;
-            overflow-x: hidden;
-        }
+        body { background-color: #030712; margin: 0; padding: 0; overflow-x: hidden; }
     </style>
 </head>
 <body>
-    <!-- 1. Thanh công cụ cố định trên cùng khi đọc truyện (Sticky Reader Toolbar) -->
     <header class="reader-toolbar">
         <div class="reader-toolbar-inner">
-            <!-- Nút quay lại và tiêu đề truyện + chapter -->
-            <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
-                <a id="btn-back-detail" href="index.html" class="btn btn-secondary btn-sm" style="flex-shrink: 0;">← Trở về</a>
-                <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    <span id="comic-header-title" style="font-weight: 700; color: var(--text-main); font-size: 14px;">Đang tải...</span>
-                    <span id="chapter-header-badge" style="color: var(--primary); font-size: 13px; font-weight: 600; margin-left: 6px;"></span>
+            <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+                <a id="btn-back-detail" href="index.html" class="btn btn-secondary btn-sm" style="flex-shrink:0;">&#x2190; Tro ve</a>
+                <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                    <span id="comic-header-title" style="font-weight:700;color:var(--text-main);font-size:14px;">Dang tai...</span>
+                    <span id="chapter-header-badge" style="color:var(--primary);font-size:13px;font-weight:600;margin-left:6px;"></span>
                 </div>
             </div>
-
-            <!-- Nút chuyển đổi giữa 2 chế độ đọc (Cuộn dọc / Từng trang) -->
-            <div style="display: flex; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 2px; flex-shrink: 0;">
-                <button type="button" id="mode-scroll-btn" class="btn btn-sm" style="background: var(--primary); color: #fff;">📜 Cuộn dọc</button>
-                <button type="button" id="mode-page-btn" class="btn btn-sm" style="background: transparent; color: var(--text-muted);">📄 Từng trang</button>
+            <div style="display:flex;background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;padding:2px;flex-shrink:0;">
+                <button type="button" id="mode-scroll-btn" class="btn btn-sm" style="background:var(--primary);color:#fff;">&#x1F4DC; Cuon doc</button>
+                <button type="button" id="mode-page-btn" class="btn btn-sm" style="background:transparent;color:var(--text-muted);">&#x1F4C4; Tung trang</button>
             </div>
         </div>
     </header>
 
-    <!-- 2. Khu vực hiển thị ảnh truyện (Reader Main Content) -->
     <div class="reader-container" id="reader-container">
-        <!-- Chế độ 1: Xem cuộn dọc toàn bộ các trang -->
         <div id="scroll-view" class="scroll-mode-view">
-            <div style="text-align: center; padding: 80px 0; color: var(--text-dim);">⏳ Đang kết nối và tải các trang ảnh...</div>
+            <div style="text-align:center;padding:80px 0;color:var(--text-dim);">&#x23F3; Dang ket noi va tai anh...</div>
         </div>
-
-        <!-- Chế độ 2: Xem từng trang đơn lẻ -->
-        <div id="page-view" class="page-mode-view" style="display: none;">
+        <div id="page-view" class="page-mode-view" style="display:none;">
             <div class="page-mode-wrapper">
-                <img id="single-page-img" class="reading-image" src="" alt="Trang truyện" referrerpolicy="no-referrer" style="display: none;" title="Bấm vào ảnh để chuyển sang trang sau">
+                <img id="single-page-img" class="reading-image" src="" alt="Trang truyen" referrerpolicy="no-referrer" style="display:none;" title="Bam vao anh de sang trang sau">
             </div>
-            
-            <!-- Bộ điều hướng chuyển trang -->
             <div class="page-nav-controls">
-                <button type="button" id="btn-prev-page" class="btn btn-secondary btn-sm">⇦ Trang trước</button>
-                <span id="page-counter" style="font-size: 15px; font-weight: 700; font-family: monospace; color: #818cf8;">1 / 1</span>
-                <button type="button" id="btn-next-page" class="btn btn-secondary btn-sm">Trang sau ⇨</button>
+                <button type="button" id="btn-prev-page" class="btn btn-secondary btn-sm">&#x21E6; Trang truoc</button>
+                <span id="page-counter" style="font-size:15px;font-weight:700;font-family:monospace;color:#818cf8;">1 / 1</span>
+                <button type="button" id="btn-next-page" class="btn btn-secondary btn-sm">Trang sau &#x21E8;</button>
             </div>
-            <p style="font-size: 12px; color: var(--text-dim); margin-top: 8px;">(Mẹo: Bấm trực tiếp vào ảnh hoặc dùng phím mũi tên ← và → trên bàn phím)</p>
+            <p style="font-size:12px;color:var(--text-dim);margin-top:8px;">(Meo: Bam vao anh hoac dung phim mui ten &#x2190; &#x2192;)</p>
         </div>
-
-        <!-- Thanh chuyển Chương trước / Chương sau ở cuối trang -->
-        <div style="max-width: 900px; margin: 40px auto 30px; padding: 0 16px; display: flex; justify-content: space-between; align-items: center; width: 100%;">
-            <button type="button" id="nav-prev-chap" class="btn btn-secondary" style="visibility: hidden;">⇦ Chương trước</button>
-            <a id="nav-comic-center" href="index.html" class="btn btn-secondary btn-sm" style="color: var(--text-muted);">📚 Về bộ truyện</a>
-            <button type="button" id="nav-next-chap" class="btn btn-primary" style="visibility: hidden;">Chương sau ⇨</button>
+        <div class="chapter-nav-bar">
+            <button type="button" id="nav-prev-chap" class="btn btn-secondary" style="visibility:hidden;">&#x21E6; Chuong truoc</button>
+            <a id="nav-comic-center" href="index.html" class="btn btn-secondary btn-sm" style="color:var(--text-muted);">&#x1F4DA; Ve bo truyen</a>
+            <button type="button" id="nav-next-chap" class="btn btn-primary" style="visibility:hidden;">Chuong sau &#x21E8;</button>
         </div>
     </div>
 
-    <!-- Nạp file JavaScript tiện ích dùng chung -->
     <script src="app.js"></script>
     <script>
-        // Lấy ID chương từ tham số URL (?id=...)
         const urlParams = new URLSearchParams(window.location.search);
         const chapterId = parseInt(urlParams.get('id'), 10);
-        
-        let currentMode = 'scroll'; // Chế độ đọc hiện tại: 'scroll' (cuộn dọc) hoặc 'page' (từng trang)
-        let pageUrls = [];          // Danh sách URL toàn bộ các trang ảnh của chapter
-        let currentPageIndex = 0;   // Chỉ số trang hiện tại (cho chế độ xem từng trang)
-        let comicId = null;         // ID của bộ truyện sở hữu chapter này
+        let currentMode = 'scroll';
+        let pageUrls = [];
+        let currentPageIndex = 0;
+        let comicId = null;
 
-        /**
-         * Khởi tạo trình đọc truyện:
-         * 1. Gọi API lấy danh sách URL tất cả các trang ảnh.
-         * 2. Tìm bộ truyện chứa chapter này để lấy tên truyện, số chapter, và ID chapter trước/sau.
-         * 3. Render giao diện tương ứng theo chế độ đọc mặc định.
-         */
         async function initReader() {
             if (!chapterId) {
-                document.getElementById('scroll-view').innerHTML = `
-                    <div style="text-align: center; padding: 60px 0; color: var(--danger);">
-                        ❌ Không tìm thấy ID chương hợp lệ!
-                    </div>
-                `;
+                document.getElementById('scroll-view').innerHTML = '<div style="text-align:center;padding:60px 0;color:var(--danger);">&#x274C; Khong tim thay ID chuong hop le!</div>';
                 return;
             }
-
             try {
-                // 1. Tải danh sách URL ảnh từ Backend
                 pageUrls = await api.getChapterPages(chapterId);
-                
-                // 2. Tìm thông tin Comic & Chapter context (xác định Chương trước / Chương sau)
                 const allComics = await api.getComics();
-                let foundComic = null;
-                let foundChapter = null;
-
+                let foundComic = null, foundChapter = null;
                 for (const c of allComics) {
                     const detail = await api.getComic(c.id);
                     const ch = detail.chapters?.find(item => item.id === chapterId);
-                    if (ch) {
-                        foundComic = detail;
-                        foundChapter = ch;
-                        break;
-                    }
+                    if (ch) { foundComic = detail; foundChapter = ch; break; }
                 }
-
                 if (foundComic) {
                     comicId = foundComic.id;
                     document.getElementById('comic-header-title').textContent = foundComic.title;
-                    document.getElementById('chapter-header-badge').textContent = `• Chương ${foundChapter.chapter_number}`;
-                    document.getElementById('btn-back-detail').href = `detail.html?id=${comicId}`;
-                    document.getElementById('nav-comic-center').href = `detail.html?id=${comicId}`;
-
-                    // Sắp xếp các chapters theo thứ tự tăng dần
+                    document.getElementById('chapter-header-badge').textContent = '&#x2022; Chuong ' + foundChapter.chapter_number;
+                    document.getElementById('btn-back-detail').href = 'detail.html?id=' + comicId;
+                    document.getElementById('nav-comic-center').href = 'detail.html?id=' + comicId;
                     const sortedChaps = [...(foundComic.chapters || [])].sort((a, b) => a.chapter_number - b.chapter_number);
                     const curIndex = sortedChaps.findIndex(ch => ch.id === chapterId);
-
-                    // Thiết lập nút chuyển về Chương trước nếu có
                     if (curIndex > 0) {
                         const prevId = sortedChaps[curIndex - 1].id;
                         const prevBtn = document.getElementById('nav-prev-chap');
                         prevBtn.style.visibility = 'visible';
-                        prevBtn.onclick = () => { window.location.href = `reader.html?id=${prevId}`; };
+                        prevBtn.onclick = () => { window.location.href = 'reader.html?id=' + prevId; };
                     }
-
-                    // Thiết lập nút chuyển sang Chương sau nếu có
                     if (curIndex < sortedChaps.length - 1) {
                         const nextId = sortedChaps[curIndex + 1].id;
                         const nextBtn = document.getElementById('nav-next-chap');
                         nextBtn.style.visibility = 'visible';
-                        nextBtn.onclick = () => { window.location.href = `reader.html?id=${nextId}`; };
+                        nextBtn.onclick = () => { window.location.href = 'reader.html?id=' + nextId; };
                     }
                 }
-
-                // Render dữ liệu ảnh vào cả 2 chế độ
                 renderScrollView();
                 updateSinglePageView();
-
             } catch (err) {
-                document.getElementById('scroll-view').innerHTML = `
-                    <div style="text-align: center; padding: 60px 0; color: var(--danger);">
-                        ❌ Lỗi khi tải ảnh chương truyện: ${err.message}
-                    </div>
-                `;
+                document.getElementById('scroll-view').innerHTML = '<div style="text-align:center;padding:60px 0;color:var(--danger);">&#x274C; Loi khi tai anh: ' + err.message + '</div>';
             }
         }
 
-        /**
-         * Render toàn bộ danh sách ảnh trong chế độ Cuộn dọc (chuẩn reading-image & data-page từ mẫu hentairead)
-         */
         function renderScrollView() {
             const scrollView = document.getElementById('scroll-view');
             if (pageUrls.length === 0) {
-                scrollView.innerHTML = '<div style="padding: 40px; color: var(--text-dim);">Không có trang ảnh nào.</div>';
+                scrollView.innerHTML = '<div style="padding:40px;color:var(--text-dim);">Khong co trang anh nao.</div>';
                 return;
             }
-
-            scrollView.innerHTML = pageUrls.map((url, i) => `
-                <div class="reader-page-wrapper" id="page-wrapper-${i}" data-page="${i + 1}">
-                    <img src="${url}" 
-                         alt="Page ${i + 1}" 
-                         data-page="${i + 1}" 
-                         class="reading-image" 
-                         loading="lazy" 
-                         referrerpolicy="no-referrer"
-                         onload="if(this.naturalWidth && this.naturalHeight){ this.style.aspectRatio = this.naturalWidth + ' / ' + this.naturalHeight; }"
-                         onerror="this.onerror=null; this.src='rem.jpg'; this.style.maxHeight='300px';">
-                </div>
-            `).join('');
+            scrollView.innerHTML = pageUrls.map((url, i) =>
+                '<div class="reader-page-wrapper" id="page-wrapper-' + i + '" data-page="' + (i+1) + '">' +
+                '<img src="' + url + '" alt="Page ' + (i+1) + '" data-page="' + (i+1) + '" class="reading-image" loading="lazy" referrerpolicy="no-referrer"' +
+                ' onload="if(this.naturalWidth&&this.naturalHeight){this.style.aspectRatio=this.naturalWidth+\' / \'+this.naturalHeight;}"' +
+                ' onerror="this.onerror=null;this.src=\'rem.jpg\';this.style.maxHeight=\'300px\';">' +
+                '</div>'
+            ).join('');
         }
 
-        /**
-         * Cập nhật hiển thị ảnh và số trang trong chế độ Xem từng trang (Single Page)
-         */
         function updateSinglePageView() {
             if (pageUrls.length === 0) return;
-            const singleImg = document.getElementById('single-page-img');
-            singleImg.src = pageUrls[currentPageIndex];
-            singleImg.alt = `Page ${currentPageIndex + 1}`;
-            singleImg.setAttribute('data-page', currentPageIndex + 1);
-            singleImg.className = 'reading-image';
-            singleImg.onload = function() {
+            const img = document.getElementById('single-page-img');
+            img.src = pageUrls[currentPageIndex];
+            img.alt = 'Page ' + (currentPageIndex + 1);
+            img.setAttribute('data-page', currentPageIndex + 1);
+            img.className = 'reading-image';
+            img.onload = function() {
                 if (this.naturalWidth && this.naturalHeight) {
-                    this.style.aspectRatio = `${this.naturalWidth} / ${this.naturalHeight}`;
+                    this.style.aspectRatio = this.naturalWidth + ' / ' + this.naturalHeight;
                 }
             };
-            singleImg.style.display = 'block';
-            document.getElementById('page-counter').textContent = `${currentPageIndex + 1} / ${pageUrls.length}`;
-
+            img.style.display = 'block';
+            document.getElementById('page-counter').textContent = (currentPageIndex + 1) + ' / ' + pageUrls.length;
             document.getElementById('btn-prev-page').disabled = currentPageIndex === 0;
             document.getElementById('btn-next-page').disabled = currentPageIndex === pageUrls.length - 1;
         }
 
-        // ==================== SỰ KIỆN CHUYỂN ĐỔI CHẾ ĐỘ ĐỌC ====================
-        // Chuyển sang chế độ cuộn dọc
         document.getElementById('mode-scroll-btn').addEventListener('click', () => {
             currentMode = 'scroll';
-            document.getElementById('mode-scroll-btn').style.background = 'var(--primary)';
-            document.getElementById('mode-scroll-btn').style.color = '#fff';
-            document.getElementById('mode-page-btn').style.background = 'transparent';
-            document.getElementById('mode-page-btn').style.color = 'var(--text-muted)';
+            document.getElementById('mode-scroll-btn').style.cssText = 'background:var(--primary);color:#fff;';
+            document.getElementById('mode-page-btn').style.cssText = 'background:transparent;color:var(--text-muted);';
             document.getElementById('scroll-view').style.display = 'flex';
             document.getElementById('page-view').style.display = 'none';
         });
 
-        // Chuyển sang chế độ từng trang
         document.getElementById('mode-page-btn').addEventListener('click', () => {
             currentMode = 'page';
-            document.getElementById('mode-page-btn').style.background = 'var(--primary)';
-            document.getElementById('mode-page-btn').style.color = '#fff';
-            document.getElementById('mode-scroll-btn').style.background = 'transparent';
-            document.getElementById('mode-scroll-btn').style.color = 'var(--text-muted)';
+            document.getElementById('mode-page-btn').style.cssText = 'background:var(--primary);color:#fff;';
+            document.getElementById('mode-scroll-btn').style.cssText = 'background:transparent;color:var(--text-muted);';
             document.getElementById('scroll-view').style.display = 'none';
             document.getElementById('page-view').style.display = 'flex';
             updateSinglePageView();
         });
 
-        // Nút lùi về trang trước (chế độ từng trang)
         document.getElementById('btn-prev-page').addEventListener('click', () => {
-            if (currentPageIndex > 0) {
-                currentPageIndex--;
-                updateSinglePageView();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
+            if (currentPageIndex > 0) { currentPageIndex--; updateSinglePageView(); window.scrollTo({top:0,behavior:'smooth'}); }
         });
-
-        // Nút tiến sang trang sau (chế độ từng trang)
         document.getElementById('btn-next-page').addEventListener('click', () => {
-            if (currentPageIndex < pageUrls.length - 1) {
-                currentPageIndex++;
-                updateSinglePageView();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
+            if (currentPageIndex < pageUrls.length - 1) { currentPageIndex++; updateSinglePageView(); window.scrollTo({top:0,behavior:'smooth'}); }
         });
-
-        // Điều khiển chuyển trang bằng phím mũi tên trên bàn phím
+        document.getElementById('single-page-img').addEventListener('click', () => {
+            if (currentPageIndex < pageUrls.length - 1) { currentPageIndex++; updateSinglePageView(); window.scrollTo({top:0,behavior:'smooth'}); }
+        });
         window.addEventListener('keydown', (e) => {
             if (currentMode !== 'page') return;
-            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-                if (currentPageIndex < pageUrls.length - 1) {
-                    currentPageIndex++;
-                    updateSinglePageView();
-                }
-            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-                if (currentPageIndex > 0) {
-                    currentPageIndex--;
-                    updateSinglePageView();
-                }
+            if ((e.key === 'ArrowRight' || e.key === 'ArrowDown') && currentPageIndex < pageUrls.length - 1) {
+                currentPageIndex++; updateSinglePageView();
+            } else if ((e.key === 'ArrowLeft' || e.key === 'ArrowUp') && currentPageIndex > 0) {
+                currentPageIndex--; updateSinglePageView();
             }
         });
 
-        // Bấm trực tiếp vào ảnh ở chế độ từng trang để chuyển sang trang kế tiếp
-        document.getElementById('single-page-img').addEventListener('click', () => {
-            if (currentPageIndex < pageUrls.length - 1) {
-                currentPageIndex++;
-                updateSinglePageView();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-        });
-
-        // Khởi chạy trình đọc truyện khi trang nạp xong
         initReader();
     </script>
 </body>

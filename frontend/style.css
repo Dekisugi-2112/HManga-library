@@ -863,7 +863,9 @@ body {
     border-top: 1px solid var(--border-color);
 }
 
-/* ==================== READER STYLES (HENTAIREAD SPEC & FULL SCREEN) ==================== */
+/* ==================== READER STYLES (Chuẩn hentairead) ==================== */
+
+/* Thanh công cụ cố định trên cùng khi đọc truyện */
 .reader-toolbar {
     position: sticky;
     top: 0;
@@ -873,6 +875,7 @@ body {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     padding: 8px 16px;
     width: 100%;
+    box-sizing: border-box;
 }
 
 .reader-toolbar-inner {
@@ -884,6 +887,7 @@ body {
     justify-content: space-between;
 }
 
+/* Khung bao ngoài toàn bộ nội dung đọc truyện */
 .reader-container {
     width: 100%;
     max-width: 100%;
@@ -892,76 +896,93 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
+    background: #030712;
 }
 
+/* ---- CHẾ ĐỘ CUỘN DỌC ---- */
 .scroll-mode-view {
     display: flex;
     flex-direction: column;
     align-items: center;
     width: 100%;
+}
+
+/* Khung bao bọc từng trang ảnh trong chế độ cuộn */
+.reader-page-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    background: #030712;
     margin: 0;
     padding: 0;
 }
 
-.reader-page-wrapper {
-    position: relative;
-    background: #030712;
-    margin: 0 auto 4px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    min-height: 250px;
-}
-
-/* Base class cho ảnh đọc truyện theo chuẩn mẫu hentairead */
+/*
+ * Class ảnh đọc truyện (chuẩn hentairead):
+ *   - max-height: 100vh  → ảnh không cao hơn màn hình (không full, còn thấy viền)
+ *   - max-width: 100%    → ảnh không vượt rộng hơn khung chứa
+ *   - width: auto        → co giãn linh hoạt theo chiều cao
+ *   - height: auto       → giữ đúng tỉ lệ gốc
+ *   - object-fit: contain → không crop, không méo
+ *   - aspect-ratio       → được gán động bằng JS sau khi ảnh tải xong
+ *     → giúp trình duyệt giữ chỗ đúng kích thước trước khi ảnh load, tránh layout shift
+ */
 .reading-image {
     display: block;
     margin: 0 auto;
-    max-height: calc(100vh - 65px);
-    max-width: 100%;
-    width: auto;
     height: auto;
+    width: auto;
+    max-height: 100vh;
+    max-width: 100%;
     object-fit: contain;
 }
 
-/* Chế độ xem từng trang (Single Page View) */
+/* ---- CHẾ ĐỘ TỪNG TRANG ---- */
 .page-mode-view {
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-height: calc(100vh - 130px);
     justify-content: center;
     width: 100%;
+    min-height: calc(100vh - 60px);
     padding: 8px 0 20px;
 }
 
+/* Wrapper căn giữa ảnh đơn lẻ theo cả chiều dọc lẫn chiều ngang */
 .page-mode-wrapper {
-    position: relative;
-    width: 100%;
-    min-height: calc(100vh - 140px);
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 4px 0;
+    width: 100%;
+    min-height: calc(100vh - 120px);
 }
 
+/* Ảnh ở chế độ từng trang: cùng quy tắc với cuộn, thêm cursor để gợi ý bấm */
 .page-mode-view .reading-image {
-    max-width: 100vw;
-    max-height: calc(100vh - 130px);
-    width: auto;
-    height: auto;
-    object-fit: contain;
     cursor: pointer;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.95);
-    border-radius: 4px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.9);
+    border-radius: 3px;
 }
 
+/* Nút điều hướng chuyển trang (Trang trước / Trang sau) */
 .page-nav-controls {
     display: flex;
     align-items: center;
     gap: 16px;
     margin-top: 14px;
+}
+
+/* Thanh điều hướng chương (Chương trước / Chương sau) ở cuối trang */
+.chapter-nav-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 900px;
+    margin: 40px auto 30px;
+    padding: 0 16px;
+    box-sizing: border-box;
 }
 
 /* ==================== TOAST NOTIFICATIONS ==================== */
