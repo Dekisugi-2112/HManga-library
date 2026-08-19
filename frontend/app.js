@@ -447,9 +447,11 @@ function generatePageUrls(baseUrl, startPage = 1, endPage = 1) {
     if (!parsed) {
         return Array.from({ length: total }, () => baseUrl);
     }
+    // Bỏ hậu tố 't' (thumbnail) để người đọc luôn xem ảnh gốc chất lượng cao nhất
+    const cleanSuffix = (parsed.suffix && parsed.suffix.toLowerCase() === 't') ? '' : parsed.suffix;
     return Array.from({ length: total }, (_, i) => {
         const pageNum = start + i;
-        return `${parsed.prefix}${pageNum}${parsed.suffix}.${parsed.extension}`;
+        return `${parsed.prefix}${pageNum}${cleanSuffix}.${parsed.extension}`;
     });
 }
 
@@ -462,12 +464,13 @@ function extractGalleryId(url) {
 }
 
 /**
- * Chuyển đổi bất kỳ URL trang nào (VD: .../236t.jpg, .../15.jpg) thành link ảnh bìa trang 1 (VD: .../1t.jpg)
+ * Chuyển đổi bất kỳ URL trang nào (VD: .../236t.jpg, .../15.jpg) thành link ảnh bìa trang 1 Full HD (VD: .../1.jpg)
  */
-function getPageOneCoverUrl(url) {
+function getPageOneCoverUrl(url, highRes = true) {
     const parsed = parseHentaifoxUrl(url);
     if (!parsed) return url;
-    return `${parsed.prefix}1${parsed.suffix}.${parsed.extension}`;
+    const cleanSuffix = (highRes && parsed.suffix && parsed.suffix.toLowerCase() === 't') ? '' : parsed.suffix;
+    return `${parsed.prefix}1${cleanSuffix}.${parsed.extension}`;
 }
 
 // ==================== 4. GENRE SELECTOR COMPONENT (CHỌN THỂ LOẠI) ====================

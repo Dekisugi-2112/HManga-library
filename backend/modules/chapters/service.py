@@ -112,5 +112,8 @@ def generate_pages(chapter_id: int):
     prefix = base_url[:match.start(1)]
     suffix = match.group(2)
     
-    # Sinh danh sách các URL trang ảnh hoàn chỉnh từ start_page đến end_page
-    return [f"{prefix}{i}{suffix}" for i in range(start_page, end_page + 1)]
+    # Loại bỏ tiền tố 't' trong đuôi file (VD: 't.jpg' -> '.jpg') để tải ảnh gốc Full HD cực nét khi đọc
+    clean_suffix = re.sub(r'^t\.', '.', suffix, flags=re.IGNORECASE)
+    
+    # Sinh danh sách các URL trang ảnh hoàn chỉnh từ start_page đến end_page với chất lượng gốc cao nhất
+    return [f"{prefix}{i}{clean_suffix}" for i in range(start_page, end_page + 1)]
