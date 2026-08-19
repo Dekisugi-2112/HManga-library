@@ -95,14 +95,18 @@
                 </div>
             </div>
 
-            <!-- Ô nhập tổng số trang và nút sinh danh sách trang -->
+            <!-- Chọn khoảng trang: Từ trang (Bắt đầu) -> Đến trang (Kết thúc) -->
             <div class="form-row" style="align-items: flex-end; margin-bottom: 14px;">
                 <div class="form-group" style="margin-bottom: 0;">
-                    <label class="form-label">Tổng số trang:</label>
-                    <input type="number" id="input-total-pages" class="form-control" placeholder="Nhập số trang..." min="1">
+                    <label class="form-label">Từ trang (Bắt đầu):</label>
+                    <input type="number" id="input-start-page" class="form-control" value="1" min="1" placeholder="Trang đầu...">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Đến trang (Kết thúc):</label>
+                    <input type="number" id="input-end-page" class="form-control" placeholder="Trang cuối..." min="1">
                 </div>
                 <div>
-                    <button type="button" id="btn-generate-urls" class="btn btn-secondary" style="width: 100%;">⚡ Cập nhật danh sách trang</button>
+                    <button type="button" id="btn-generate-urls" class="btn btn-secondary" style="width: 100%; white-space: nowrap;">⚡ Cập nhật danh sách</button>
                 </div>
             </div>
 
@@ -234,11 +238,17 @@
                         document.getElementById('btn-view-existing').href = `detail.html?id=${check.comic.id}`;
                         document.getElementById('existing-comic-alert').style.display = 'block';
                         
-                        // Tự động gợi ý số chương tiếp theo
+                        // Tự động gợi ý số chương và trang bắt đầu tiếp theo
                         const chapters = check.comic.chapters || [];
                         if (chapters.length > 0) {
                             const maxNum = Math.max(...chapters.map(c => c.chapter_number));
                             document.getElementById('chapter-number').value = maxNum + 1;
+
+                            // Gợi ý trang bắt đầu của chương mới là trang kế tiếp của chương trước
+                            const maxEndPage = Math.max(...chapters.map(c => c.end_page || c.total_pages || 0));
+                            if (maxEndPage > 0) {
+                                document.getElementById('input-start-page').value = maxEndPage + 1;
+                            }
                         }
                     } else {
                         existingComicData = null;
@@ -253,24 +263,29 @@
         }
 
         /**
-         * Cập nhật và vẽ lại danh sách URL tất cả các trang ảnh
+         * Cập nhật và vẽ lại danh sách URL tất cả các trang ảnh từ start_page đến end_page
          */
         function updateUrlList() {
             if (!currentParsed) return;
             const baseUrl = document.getElementById('input-url').value.trim();
-            const totalPages = parseInt(document.getElementById('input-total-pages').value, 10) || 1;
+            const startPage = parseInt(document.getElementById('input-start-page').value, 10) || 1;
+            const endPage = parseInt(document.getElementById('input-end-page').value, 10) || startPage;
 
-            generatedUrls = generatePageUrls(baseUrl, totalPages);
+            generatedUrls = generatePageUrls(baseUrl, startPage, endPage);
             const listEl = document.getElementById('preview-list');
-            document.getElementById('preview-count-label').textContent = `Danh sách trang (${generatedUrls.length} trang):`;
+            document.getElementById('preview-count-label').textContent = 
+                `Danh sách trang (${generatedUrls.length} trang: từ trang ${startPage} → ${endPage}):`;
             
-            listEl.innerHTML = generatedUrls.map((u, i) => `
-                <div class="preview-item" id="preview-item-${i}">
-                    <span style="color: var(--text-dim); margin-right: 8px;">#${i + 1}</span>
-                    <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${u}</span>
-                    <span class="test-status" id="test-status-${i}"></span>
-                </div>
-            `).join('');
+            listEl.innerHTML = generatedUrls.map((u, i) => {
+                const actualPageNum = startPage + i;
+                return `
+                    <div class="preview-item" id="preview-item-${i}">
+                        <span style="color: var(--text-dim); margin-right: 8px;">#${actualPageNum}</span>
+                        <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${u}</span>
+                        <span class="test-status" id="test-status-${i}"></span>
+                    </div>
+                `;
+            }).join('');
 
             document.getElementById('preview-container').style.display = 'block';
         }
@@ -304,12 +319,18 @@
         document.getElementById('btn-add-to-existing').addEventListener('click', async () => {
             if (!existingComicData) return;
             const baseUrl = document.getElementById('input-url').value.trim();
-            const totalPages = parseInt(document.getElementById('input-total-pages').value, 10);
+            const startPage = parseInt(document.getElementById('input-start-page').value, 10) || 1;
+            const endPage = parseInt(document.getElementById('input-end-page').value, 10);
             const chapterNum = parseFloat(document.getElementById('chapter-number').value) || 1;
             const chapterTitle = document.getElementById('chapter-title').value.trim();
 
-            if (!baseUrl || !totalPages) {
-                showToast('Vui lòng nhập URL và tổng số trang!', 'warning');
+            if (!baseUrl || !endPage) {
+                showToast('Vui lòng phân tích URL và nhập trang kết thúc!', 'warning');
+                return;
+            }
+
+            if (endPage < startPage) {
+                showToast('Trang kết thúc phải lớn hơn hoặc bằng trang bắt đầu!', 'warning');
                 return;
             }
 
@@ -318,9 +339,10 @@
                     chapter_number: chapterNum,
                     title: chapterTitle || undefined,
                     base_url: baseUrl,
-                    total_pages: totalPages
+                    start_page: startPage,
+                    end_page: endPage
                 });
-                showToast('Đã thêm chương mới thành công!', 'success');
+                showToast(`Đã thêm chương ${chapterNum} (${endPage - startPage + 1} trang) thành công!`, 'success');
                 setTimeout(() => { window.location.href = `detail.html?id=${existingComicData.id}`; }, 800);
             } catch (err) {
                 showToast(err.message || 'Lỗi khi thêm chương', 'error');
@@ -337,7 +359,8 @@
             const selectedGenres = genreSelector.getSelectedGenres();
 
             const baseUrl = document.getElementById('input-url').value.trim();
-            const totalPages = parseInt(document.getElementById('input-total-pages').value, 10);
+            const startPage = parseInt(document.getElementById('input-start-page').value, 10) || 1;
+            const endPage = parseInt(document.getElementById('input-end-page').value, 10);
             const chapterNum = parseFloat(document.getElementById('chapter-number').value) || 1;
             const chapterTitle = document.getElementById('chapter-title').value.trim();
 
@@ -345,8 +368,13 @@
                 showToast('Vui lòng nhập tên truyện!', 'warning');
                 return;
             }
-            if (!baseUrl || !totalPages) {
-                showToast('Vui lòng phân tích URL và nhập số trang trước!', 'warning');
+            if (!baseUrl || !endPage) {
+                showToast('Vui lòng phân tích URL và nhập trang kết thúc trước!', 'warning');
+                return;
+            }
+
+            if (endPage < startPage) {
+                showToast('Trang kết thúc phải lớn hơn hoặc bằng trang bắt đầu!', 'warning');
                 return;
             }
 
@@ -363,12 +391,13 @@
                     source_url: baseUrl
                 });
 
-                // 2. Tạo bản ghi chương truyện (Chapter)
+                // 2. Tạo bản ghi chương truyện (Chapter) với start_page và end_page
                 await api.createChapter(comic.id, {
                     chapter_number: chapterNum,
                     title: chapterTitle || undefined,
                     base_url: baseUrl,
-                    total_pages: totalPages
+                    start_page: startPage,
+                    end_page: endPage
                 });
 
                 // 3. Tải ảnh bìa về lưu trữ tại server
@@ -378,7 +407,7 @@
                     console.warn('Lỗi tải cover:', coverErr);
                 }
 
-                showToast('Thêm bộ truyện thành công!', 'success');
+                showToast(`Thêm bộ truyện thành công (Ch.${chapterNum}: ${endPage - startPage + 1} trang)!`, 'success');
                 setTimeout(() => {
                     window.location.href = `detail.html?id=${comic.id}`;
                 }, 800);

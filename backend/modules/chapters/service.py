@@ -20,18 +20,31 @@ def get_chapters(comic_id: int):
     sắp xếp theo thứ tự `chapter_number` tăng dần.
     """
     response = supabase.table("chapters").select("*").eq("comic_id", comic_id).order("chapter_number").execute()
-    return response.data
+    chapters = response.data or []
+    for ch in chapters:
+        s_page = ch.get("start_page", 1) or 1
+        e_page = ch.get("end_page", ch.get("total_pages", 1)) or s_page
+        ch["start_page"] = s_page
+        ch["end_page"] = e_page
+        ch["total_pages"] = max(1, e_page - s_page + 1)
+    return chapters
 
 def create_chapter(comic_id: int, chapter_data: ChapterCreate):
     """
     Tạo mới một chapter gắn liền với bộ truyện (`comic_id`).
-    - Lưu vào DB và cập nhật lại cache cục bộ.
+    - Lưu start_page và end_page vào DB và cập nhật lại cache cục bộ.
     """
     chapter_dict = chapter_data.dict()
     chapter_dict["comic_id"] = comic_id
     response = supabase.table("chapters").insert(chapter_dict).execute()
     update_cache()
-    return response.data[0]
+    new_ch = response.data[0]
+    s_page = new_ch.get("start_page", 1) or 1
+    e_page = new_ch.get("end_page", 1) or s_page
+    new_ch["start_page"] = s_page
+    new_ch["end_page"] = e_page
+    new_ch["total_pages"] = max(1, e_page - s_page + 1)
+    return new_ch
 
 def update_chapter(chapter_id: int, chapter_data: ChapterUpdate):
     """
@@ -41,7 +54,15 @@ def update_chapter(chapter_id: int, chapter_data: ChapterUpdate):
     update_dict = {k: v for k, v in chapter_data.dict().items() if v is not None}
     response = supabase.table("chapters").update(update_dict).eq("id", chapter_id).execute()
     update_cache()
-    return response.data[0] if response.data else None
+    if not response.data:
+        return None
+    ch = response.data[0]
+    s_page = ch.get("start_page", 1) or 1
+    e_page = ch.get("end_page", 1) or s_page
+    ch["start_page"] = s_page
+    ch["end_page"] = e_page
+    ch["total_pages"] = max(1, e_page - s_page + 1)
+    return ch
 
 def delete_chapter(chapter_id: int):
     """
@@ -52,31 +73,38 @@ def delete_chapter(chapter_id: int):
 
 def generate_pages(chapter_id: int):
     """
-    Tự động tạo danh sách toàn bộ URL ảnh đọc truyện (từ trang 1 -> total_pages).
+    Tự động tạo danh sách toàn bộ URL ảnh đọc truyện (từ trang start_page -> end_page).
     
     Cơ chế:
     - Phân tích chuỗi số thứ tự và phần đuôi file từ `base_url` bằng Regular Expression (Regex).
       Ví dụ URL mẫu: 'https://i3.hentaifox.com/004/4029076/1.jpg' hoặc '1t.jpg'
       -> Tách prefix: 'https://i3.hentaifox.com/004/4029076/'
       -> Tách suffix: '.jpg' hoặc 't.jpg'
-    - Tạo vòng lặp từ 1 đến `total_pages` để ráp thành danh sách đầy đủ.
+    - Tạo vòng lặp từ `start_page` đến `end_page` để ráp thành danh sách đầy đủ.
     """
-    response = supabase.table("chapters").select("base_url, total_pages").eq("id", chapter_id).execute()
+    response = supabase.table("chapters").select("base_url, start_page, end_page, total_pages").eq("id", chapter_id).execute()
     if not response.data:
         return []
         
     chapter = response.data[0]
     base_url = chapter["base_url"]
-    total_pages = chapter["total_pages"]
+    start_page = chapter.get("start_page") or 1
+    # Dự phòng lấy total_pages nếu database chưa chạy migration
+    end_page = chapter.get("end_page") or chapter.get("total_pages") or start_page
+    
+    if end_page < start_page:
+        end_page = start_page
+
+    total_count = end_page - start_page + 1
     
     # Regex tìm số trang và phần đuôi ở cuối URL: VD: /1t.jpg hoặc /1.jpg
     match = re.search(r'/(\d+)([^/]*\.\w+)$', base_url)
     if not match:
         # Dự phòng nếu đường link không tuân theo quy tắc thông thường
-        return [base_url] * total_pages
+        return [base_url] * total_count
         
     prefix = base_url[:match.start(1)]
     suffix = match.group(2)
     
-    # Sinh danh sách các URL trang ảnh hoàn chỉnh
-    return [f"{prefix}{i}{suffix}" for i in range(1, total_pages + 1)]
+    # Sinh danh sách các URL trang ảnh hoàn chỉnh từ start_page đến end_page
+    return [f"{prefix}{i}{suffix}" for i in range(start_page, end_page + 1)]

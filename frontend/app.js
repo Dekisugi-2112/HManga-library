@@ -321,15 +321,23 @@ function parseHentaifoxUrl(url) {
 }
 
 /**
- * Tự động sinh danh sách toàn bộ URL ảnh từ trang 1 đến totalPages
+ * Tự động sinh danh sách toàn bộ URL ảnh từ trang startPage đến endPage:
+ * - startPage: Trang bắt đầu (VD: 1, 15, 21...)
+ * - endPage: Trang kết thúc (VD: 20, 35, 50...)
  */
-function generatePageUrls(baseUrl, totalPages) {
+function generatePageUrls(baseUrl, startPage = 1, endPage = 1) {
+    const s = parseInt(startPage, 10) || 1;
+    const e = parseInt(endPage, 10) || s;
+    const start = Math.min(s, e);
+    const end = Math.max(s, e);
+    const total = end - start + 1;
+
     const parsed = parseHentaifoxUrl(baseUrl);
     if (!parsed) {
-        return Array.from({ length: totalPages }, () => baseUrl);
+        return Array.from({ length: total }, () => baseUrl);
     }
-    return Array.from({ length: totalPages }, (_, i) => {
-        const pageNum = i + 1;
+    return Array.from({ length: total }, (_, i) => {
+        const pageNum = start + i;
         return `${parsed.prefix}${pageNum}${parsed.suffix}.${parsed.extension}`;
     });
 }

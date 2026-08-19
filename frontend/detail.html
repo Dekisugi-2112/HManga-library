@@ -179,13 +179,19 @@
                         <input type="number" id="new-chap-num" class="form-control" step="0.5" min="0" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Tổng số trang *</label>
-                        <input type="number" id="new-chap-pages" class="form-control" min="1" placeholder="Số trang..." required>
+                        <label class="form-label">Tên chương (Tùy chọn)</label>
+                        <input type="text" id="new-chap-title" class="form-control" placeholder="Tùy chọn...">
                     </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Tên chương (Tùy chọn)</label>
-                    <input type="text" id="new-chap-title" class="form-control" placeholder="Tùy chọn...">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Từ trang (Bắt đầu) *</label>
+                        <input type="number" id="new-chap-start-page" class="form-control" value="1" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Đến trang (Kết thúc) *</label>
+                        <input type="number" id="new-chap-end-page" class="form-control" min="1" placeholder="Trang cuối..." required>
+                    </div>
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-chapter')">Hủy</button>
@@ -204,13 +210,25 @@
             </div>
             <form id="form-edit-chapter">
                 <input type="hidden" id="edit-chap-id">
-                <div class="form-group">
-                    <label class="form-label">Số thứ tự chương (VD: chuyển 1 thành 2):</label>
-                    <input type="number" id="edit-chap-num" class="form-control" step="0.5" min="0" required>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Số thứ tự chương *</label>
+                        <input type="number" id="edit-chap-num" class="form-control" step="0.5" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tên chương:</label>
+                        <input type="text" id="edit-chap-title" class="form-control" placeholder="Tùy chọn...">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Tên chương:</label>
-                    <input type="text" id="edit-chap-title" class="form-control" placeholder="Tùy chọn...">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Từ trang (Bắt đầu) *</label>
+                        <input type="number" id="edit-chap-start-page" class="form-control" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Đến trang (Kết thúc) *</label>
+                        <input type="number" id="edit-chap-end-page" class="form-control" min="1" required>
+                    </div>
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('modal-edit-chapter')">Hủy</button>
@@ -291,19 +309,26 @@
                 if (chapters.length === 0) {
                     chapContainer.innerHTML = `<p style="text-align: center; color: var(--text-dim); padding: 30px 0;">Chưa có chương nào. Hãy bấm "+ Thêm chương mới" để thêm!</p>`;
                 } else {
-                    chapContainer.innerHTML = chapters.map(ch => `
-                        <div class="chapter-row">
-                            <a href="reader.html?id=${ch.id}" class="chapter-link">
-                                <span style="font-weight: 700; color: var(--primary); font-family: monospace; font-size: 15px;">Ch.${ch.chapter_number}</span>
-                                <span style="font-size: 14px; font-weight: 500; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${ch.title || ''}</span>
-                                <span style="color: var(--text-dim); font-size: 12px;">(${ch.total_pages} trang)</span>
-                            </a>
-                            <div style="display: flex; gap: 6px;">
-                                <button type="button" class="btn btn-secondary btn-sm" onclick="openEditChapterModal(${ch.id}, ${ch.chapter_number}, '${ch.title || ''}')">✏️</button>
-                                <button type="button" class="btn btn-danger btn-sm" onclick="confirmDeleteChapter(${ch.id})">✕</button>
+                    chapContainer.innerHTML = chapters.map(ch => {
+                        const startP = ch.start_page || 1;
+                        const endP = ch.end_page || ch.total_pages || startP;
+                        const pageCount = ch.total_pages || (endP - startP + 1);
+                        const titleEscaped = (ch.title || '').replace(/'/g, "\\'");
+
+                        return `
+                            <div class="chapter-row">
+                                <a href="reader.html?id=${ch.id}" class="chapter-link">
+                                    <span style="font-weight: 700; color: var(--primary); font-family: monospace; font-size: 15px;">Ch.${ch.chapter_number}</span>
+                                    <span style="font-size: 14px; font-weight: 500; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${ch.title || ''}</span>
+                                    <span style="color: var(--text-dim); font-size: 12px;">(${pageCount} trang: trang ${startP} → ${endP})</span>
+                                </a>
+                                <div style="display: flex; gap: 6px;">
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="openEditChapterModal(${ch.id}, ${ch.chapter_number}, '${titleEscaped}', ${startP}, ${endP})">✏️</button>
+                                    <button type="button" class="btn btn-danger btn-sm" onclick="confirmDeleteChapter(${ch.id})">✕</button>
+                                </div>
                             </div>
-                        </div>
-                    `).join('');
+                        `;
+                    }).join('');
                 }
 
                 document.getElementById('chapters-card').style.display = 'block';
@@ -375,8 +400,13 @@
             const nextNum = chapters.length > 0 ? Math.max(...chapters.map(c => c.chapter_number)) + 1 : 1;
             document.getElementById('new-chap-num').value = nextNum;
             document.getElementById('new-chap-url').value = '';
-            document.getElementById('new-chap-pages').value = '';
             document.getElementById('new-chap-title').value = '';
+
+            // Tự động gợi ý trang bắt đầu tiếp theo từ chương liền trước
+            const maxEndPage = chapters.length > 0 ? Math.max(...chapters.map(c => c.end_page || c.total_pages || 0)) : 0;
+            document.getElementById('new-chap-start-page').value = maxEndPage > 0 ? maxEndPage + 1 : 1;
+            document.getElementById('new-chap-end-page').value = '';
+
             openModal('modal-add-chapter');
         });
 
@@ -388,6 +418,9 @@
                 showToast('Link không đúng định dạng hentaifox!', 'warning');
             } else {
                 showToast(`Phát hiện Gallery ID: ${parsed.galleryId}`, 'info');
+                if (parsed.pageNumber) {
+                    document.getElementById('new-chap-start-page').value = parsed.pageNumber;
+                }
             }
         });
 
@@ -396,18 +429,25 @@
             e.preventDefault();
             const url = document.getElementById('new-chap-url').value.trim();
             const chapterNum = parseFloat(document.getElementById('new-chap-num').value);
-            const totalPages = parseInt(document.getElementById('new-chap-pages').value, 10);
+            const startPage = parseInt(document.getElementById('new-chap-start-page').value, 10) || 1;
+            const endPage = parseInt(document.getElementById('new-chap-end-page').value, 10);
             const title = document.getElementById('new-chap-title').value.trim();
+
+            if (endPage < startPage) {
+                showToast('Trang kết thúc phải lớn hơn hoặc bằng trang bắt đầu!', 'warning');
+                return;
+            }
 
             try {
                 await api.createChapter(comicId, {
                     chapter_number: chapterNum,
                     title: title || undefined,
                     base_url: url,
-                    total_pages: totalPages
+                    start_page: startPage,
+                    end_page: endPage
                 });
                 closeModal('modal-add-chapter');
-                showToast('Đã thêm chương mới thành công!', 'success');
+                showToast(`Đã thêm chương ${chapterNum} (${endPage - startPage + 1} trang) thành công!`, 'success');
                 loadComicDetail();
             } catch (err) {
                 showToast(err.message, 'error');
@@ -416,10 +456,12 @@
 
         // ==================== SỬA CHƯƠNG ====================
         /** Mở modal chỉnh sửa một chương */
-        function openEditChapterModal(id, num, title) {
+        function openEditChapterModal(id, num, title, startPage, endPage) {
             document.getElementById('edit-chap-id').value = id;
             document.getElementById('edit-chap-num').value = num;
             document.getElementById('edit-chap-title').value = title;
+            document.getElementById('edit-chap-start-page').value = startPage || 1;
+            document.getElementById('edit-chap-end-page').value = endPage || startPage || 1;
             openModal('modal-edit-chapter');
         }
 
@@ -429,14 +471,23 @@
             const chapId = parseInt(document.getElementById('edit-chap-id').value, 10);
             const chapNum = parseFloat(document.getElementById('edit-chap-num').value);
             const chapTitle = document.getElementById('edit-chap-title').value.trim();
+            const startPage = parseInt(document.getElementById('edit-chap-start-page').value, 10) || 1;
+            const endPage = parseInt(document.getElementById('edit-chap-end-page').value, 10);
+
+            if (endPage < startPage) {
+                showToast('Trang kết thúc phải lớn hơn hoặc bằng trang bắt đầu!', 'warning');
+                return;
+            }
 
             try {
                 await api.updateChapter(chapId, {
                     chapter_number: chapNum,
-                    title: chapTitle || undefined
+                    title: chapTitle || undefined,
+                    start_page: startPage,
+                    end_page: endPage
                 });
                 closeModal('modal-edit-chapter');
-                showToast('Đã cập nhật chương!', 'success');
+                showToast('Đã cập nhật chương thành công!', 'success');
                 loadComicDetail();
             } catch (err) {
                 showToast(err.message, 'error');

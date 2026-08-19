@@ -63,7 +63,8 @@ CREATE TABLE IF NOT EXISTS public.comic_genres (
 -- - chapter_number: Số thứ tự chương (VD: 1, 1.5, 2...)
 -- - title: Tên chương tùy chọn
 -- - base_url: Link ảnh mẫu (trang 1) dùng để sinh URL các trang ảnh khi đọc
--- - total_pages: Tổng số trang ảnh trong chương
+-- - start_page: Số trang bắt đầu (VD: 1)
+-- - end_page: Số trang kết thúc (VD: 25)
 -- - UNIQUE (comic_id, chapter_number): Không cho phép trùng số chương trong cùng 1 truyện
 CREATE TABLE IF NOT EXISTS public.chapters (
     id SERIAL PRIMARY KEY,
@@ -71,9 +72,22 @@ CREATE TABLE IF NOT EXISTS public.chapters (
     chapter_number NUMERIC(6,1) NOT NULL,
     title VARCHAR(255),
     base_url TEXT NOT NULL,
-    total_pages INT NOT NULL,
+    start_page INT NOT NULL DEFAULT 1,
+    end_page INT NOT NULL,
     UNIQUE (comic_id, chapter_number)
 );
+
+-- Migration cập nhật bảng chapters (nếu database đã tồn tại cột total_pages cũ)
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS start_page INT NOT NULL DEFAULT 1;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS end_page INT;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='chapters' AND column_name='total_pages') THEN
+        UPDATE public.chapters SET end_page = total_pages WHERE end_page IS NULL;
+        ALTER TABLE public.chapters ALTER COLUMN end_page SET NOT NULL;
+        ALTER TABLE public.chapters DROP COLUMN total_pages;
+    END IF;
+END $$;
 
 -- Gỡ bỏ cột timestamp khỏi bảng chapters nếu có
 ALTER TABLE public.chapters DROP COLUMN IF EXISTS created_at;
