@@ -27,7 +27,7 @@ out/
 .turbo/
 
 # ===== Runtime & Cache =====
-backend/cache/comics_cache.json
+comics_cache.json
 cover-images/
 
 # ===== OS =====

@@ -284,10 +284,10 @@ const api = {
     },
 
     /**
-     * Lấy đường dẫn URL xem ảnh bìa (nếu chưa có hoặc lỗi thì dùng ảnh dự phòng rem.jpg)
+     * Lấy đường dẫn URL xem ảnh bìa (nếu chưa có hoặc lỗi thì dùng ảnh dự phòng rem.jpg trong cover-images)
      */
     getCoverUrl(filename) {
-        if (!filename) return 'rem.jpg';
+        if (!filename) return `${API_BASE}/api/covers/rem.jpg`;
         return `${API_BASE}/api/covers/${filename}`;
     },
 

@@ -16,9 +16,8 @@ from pathlib import Path
 from core.database import supabase
 from modules.comics.schemas import ComicCreate, ComicUpdate
 
-# Đường dẫn đến file lưu trữ cache truyện cục bộ
-CACHE_DIR = Path(__file__).parent.parent.parent / "cache"
-CACHE_FILE = CACHE_DIR / "comics_cache.json"
+# Đường dẫn đến file lưu trữ cache truyện cục bộ (nằm ở thư mục gốc cùng cấp với backend và frontend)
+CACHE_FILE = Path(__file__).parent.parent.parent.parent / "comics_cache.json"
 
 def extract_gallery_id_from_url(source_url: str = None, cover_filename: str = None) -> str:
     """
@@ -305,8 +304,8 @@ def delete_comic(comic_id) -> bool:
         print(f"[Error] Error deleting comic: {e}")
         raise e
     
-    # Xóa file ảnh bìa trên đĩa cứng
-    if cover_filename:
+    # Xóa file ảnh bìa trên đĩa cứng (không bao giờ xóa file rem.jpg)
+    if cover_filename and cover_filename.lower() != "rem.jpg":
         cover_path = Path(__file__).parent.parent.parent.parent / "cover-images" / cover_filename
         if not cover_path.exists():
             cover_path = Path(__file__).parent.parent.parent / "cover-images" / cover_filename
@@ -359,11 +358,10 @@ def check_comic_by_gallery_id(gallery_id: str):
 
 def update_cache():
     """
-    Tạo hoặc cập nhật file JSON cache (`cache/comics_cache.json`).
+    Tạo hoặc cập nhật file JSON cache (`comics_cache.json` ở thư mục gốc).
     Lưu trữ danh sách toàn bộ truyện và chương chuẩn, loại bỏ hoàn toàn các trường cũ (status, type...).
     """
     try:
-        CACHE_DIR.mkdir(parents=True, exist_ok=True)
         comics = get_all_comics()
         for comic in comics:
             clean_comic_dict(comic)
