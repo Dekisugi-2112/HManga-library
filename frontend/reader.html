@@ -40,25 +40,16 @@
                 </div>
             </div>
 
-            <!-- Các nút tùy chỉnh: Kích thước hiển thị & Chế độ đọc -->
-            <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
-                <!-- Tùy chọn khớp kích thước ảnh (Fit Height / Fit Width) -->
-                <div style="display: flex; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 2px;">
-                    <button type="button" id="fit-height-btn" class="btn btn-sm" style="background: var(--primary); color: #fff;" title="Vừa chiều cao màn hình (Fit Height - không cuộn dài)">↕️ Vừa màn</button>
-                    <button type="button" id="fit-width-btn" class="btn btn-sm" style="background: transparent; color: var(--text-muted);" title="Tràn 100% chiều rộng màn hình (Fit Width)">↔️ Tràn rộng</button>
-                </div>
-
-                <!-- Chuyển đổi giữa 2 chế độ đọc (Cuộn dọc / Từng trang) -->
-                <div style="display: flex; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 2px;">
-                    <button type="button" id="mode-scroll-btn" class="btn btn-sm" style="background: var(--primary); color: #fff;">📜 Cuộn</button>
-                    <button type="button" id="mode-page-btn" class="btn btn-sm" style="background: transparent; color: var(--text-muted);">📄 Trang</button>
-                </div>
+            <!-- Nút chuyển đổi giữa 2 chế độ đọc (Cuộn dọc / Từng trang) -->
+            <div style="display: flex; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 2px; flex-shrink: 0;">
+                <button type="button" id="mode-scroll-btn" class="btn btn-sm" style="background: var(--primary); color: #fff;">📜 Cuộn dọc</button>
+                <button type="button" id="mode-page-btn" class="btn btn-sm" style="background: transparent; color: var(--text-muted);">📄 Từng trang</button>
             </div>
         </div>
     </header>
 
     <!-- 2. Khu vực hiển thị ảnh truyện (Reader Main Content) -->
-    <div class="reader-container fit-height" id="reader-container">
+    <div class="reader-container" id="reader-container">
         <!-- Chế độ 1: Xem cuộn dọc toàn bộ các trang -->
         <div id="scroll-view" class="scroll-mode-view">
             <div style="text-align: center; padding: 80px 0; color: var(--text-dim);">⏳ Đang kết nối và tải các trang ảnh...</div>
@@ -176,38 +167,7 @@
         }
 
         /**
-         * Render toàn bộ danh sách ảnh trong chế độ Cuộn dọc (hỗ trợ lazy load)
-        let fitMode = localStorage.getItem('reader_fit_mode') || 'fit-height'; // 'fit-height' hoặc 'fit-width'
-
-        /**
-         * Áp dụng chế độ khớp kích thước ảnh (Fit Height / Fit Width)
-         */
-        function applyFitMode(mode) {
-            fitMode = mode;
-            localStorage.setItem('reader_fit_mode', mode);
-            const container = document.getElementById('reader-container');
-            const fitHeightBtn = document.getElementById('fit-height-btn');
-            const fitWidthBtn = document.getElementById('fit-width-btn');
-
-            if (mode === 'fit-height') {
-                container.classList.add('fit-height');
-                container.classList.remove('fit-width');
-                fitHeightBtn.style.background = 'var(--primary)';
-                fitHeightBtn.style.color = '#fff';
-                fitWidthBtn.style.background = 'transparent';
-                fitWidthBtn.style.color = 'var(--text-muted)';
-            } else {
-                container.classList.add('fit-width');
-                container.classList.remove('fit-height');
-                fitWidthBtn.style.background = 'var(--primary)';
-                fitWidthBtn.style.color = '#fff';
-                fitHeightBtn.style.background = 'transparent';
-                fitHeightBtn.style.color = 'var(--text-muted)';
-            }
-        }
-
-        /**
-         * Render toàn bộ danh sách ảnh trong chế độ Cuộn dọc (chuẩn reading-image & data-page)
+         * Render toàn bộ danh sách ảnh trong chế độ Cuộn dọc (chuẩn reading-image & data-page từ mẫu hentairead)
          */
         function renderScrollView() {
             const scrollView = document.getElementById('scroll-view');
@@ -252,11 +212,7 @@
             document.getElementById('btn-next-page').disabled = currentPageIndex === pageUrls.length - 1;
         }
 
-        // ==================== SỰ KIỆN CHUYỂN ĐỔI CHẾ ĐỘ & KÍCH THƯỚC ====================
-        // Chuyển đổi Fit Height (Vừa chiều cao) / Fit Width (Tràn chiều rộng)
-        document.getElementById('fit-height-btn').addEventListener('click', () => applyFitMode('fit-height'));
-        document.getElementById('fit-width-btn').addEventListener('click', () => applyFitMode('fit-width'));
-
+        // ==================== SỰ KIỆN CHUYỂN ĐỔI CHẾ ĐỘ ĐỌC ====================
         // Chuyển sang chế độ cuộn dọc
         document.getElementById('mode-scroll-btn').addEventListener('click', () => {
             currentMode = 'scroll';
@@ -322,9 +278,6 @@
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         });
-
-        // Khởi tạo chế độ fit kích thước đã lưu
-        applyFitMode(fitMode);
 
         // Khởi chạy trình đọc truyện khi trang nạp xong
         initReader();

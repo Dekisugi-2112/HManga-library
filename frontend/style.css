@@ -914,30 +914,13 @@ body {
     min-height: 250px;
 }
 
-/* Base class cho ảnh đọc truyện theo chuẩn hentairead */
+/* Base class cho ảnh đọc truyện theo chuẩn mẫu hentairead */
 .reading-image {
     display: block;
     margin: 0 auto;
-    object-fit: contain;
-    transition: max-height 0.2s ease, width 0.2s ease;
-}
-
-/* Chế độ 1: Khớp chiều cao màn hình (Fit Height / Fit Screen) - Vừa vặn 1 màn hình */
-.reader-container.fit-height .scroll-mode-view .reading-image,
-.reader-container.fit-height .page-mode-wrapper .reading-image {
     max-height: calc(100vh - 65px);
     max-width: 100%;
     width: auto;
-    height: auto;
-    object-fit: contain;
-}
-
-/* Chế độ 2: Tràn chiều rộng (Fit Width) - Bung 100% bề ngang màn hình */
-.reader-container.fit-width .scroll-mode-view .reading-image,
-.reader-container.fit-width .page-mode-wrapper .reading-image {
-    width: 100%;
-    max-width: 100%;
-    max-height: none;
     height: auto;
     object-fit: contain;
 }
