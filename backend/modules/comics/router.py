@@ -70,7 +70,7 @@ def delete_comic(comic_id: str):
 @router.get("/check/{gallery_id}")
 def check_comic_exists(gallery_id: str):
     """
-    API kiểm tra xem truyện đã tồn tại trong thư viện chưa thông qua gallery_id của hentaifox.
+    API kiểm tra xem truyện đã tồn tại trong thư viện chưa thông qua gallery_id.
     - Trả về: { exists: true, comic: {...} } nếu đã có.
     - Trả về: { exists: false } nếu chưa có.
     """

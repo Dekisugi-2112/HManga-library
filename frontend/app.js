@@ -7,9 +7,11 @@
  * 1. API_BASE: Tự động cấu hình URL Backend API (port 8000).
  * 2. showToast: Hiển thị thông báo nổi (Toast Notification) báo thành công/thất bại/cảnh báo.
  * 3. api: Module tập trung các hàm gọi RESTful API tới máy chủ (Comics, Chapters, Genres, Authors, Search, Images).
- * 4. URL Parser: Công cụ giải mã URL hentaifox (`parseHentaifoxUrl`, `generatePageUrls`, `extractGalleryId`).
- * 5. GenreSelectorComponent: Thành phần chọn thể loại dạng nút bấm (Chips) trực quan.
- * 6. AuthorAutocompleteComponent: Thành phần gợi ý và tìm kiếm tác giả thông minh (Autocomplete).
+ * 4. URL Parser: Công cụ giải mã URL nhentai (`parseMangaUrl`, `generatePageUrls`, `getPageOneCoverUrl`).
+ * 5. Smart Fallback: Tự động thử nhiều định dạng ảnh khi gặp lỗi 404 (`handleImageFallback`).
+ * 6. renderComicCard: Render HTML thẻ truyện dùng chung cho nhiều trang.
+ * 7. GenreSelectorComponent: Thành phần chọn thể loại dạng nút bấm (Chips) trực quan.
+ * 8. AuthorAutocompleteComponent: Thành phần gợi ý và tìm kiếm tác giả thông minh (Autocomplete).
  */
 
 // ==================== CẤU HÌNH API BASE ====================
@@ -271,7 +273,7 @@ const api = {
 
     // ------------------- HÌNH ẢNH (IMAGES & COVERS) -------------------
     /**
-     * Yêu cầu Backend tải ảnh bìa từ hentaifox về lưu tại local thư mục cover-images/
+     * Yêu cầu Backend tải ảnh bìa từ nhentai về lưu tại local thư mục cover-images/
      */
     async downloadCover(url, comicId) {
         const res = await fetch(`${API_BASE}/api/images/download-cover`, {
@@ -414,19 +416,23 @@ const api = {
     }
 };
 
-// ==================== 3. URL PARSER (BÓC TÁCH LINK HENTAIFOX) ====================
+// ==================== 3. URL PARSER (BÓC TÁCH LINK NHENTAI) ====================
 /**
- * Phân tích cấu trúc đường link ảnh từ hentaifox:
- * Ví dụ: "https://i3.hentaifox.com/004/4029076/1t.jpg"
- * -> prefix: "https://i3.hentaifox.com/004/4029076/"
+ * Phân tích cấu trúc đường link ảnh từ nhentai hoặc các nguồn tương thích:
+ * Ví dụ: "https://t3.nhentai.net/galleries/4126277/1t.webp"
+ * -> prefix: "https://t3.nhentai.net/galleries/4126277/"
  * -> pageNumber: 1
  * -> suffix: "t"
- * -> extension: "jpg"
- * -> galleryId: "4029076"
+ * -> extension: "webp"
+ * -> galleryId: "4126277"
  */
-function parseHentaifoxUrl(url) {
+function parseMangaUrl(url) {
     if (!url) return null;
-    const match = url.trim().match(/^(.*\/)(\d+)([a-zA-Z]*)\.(\w+)(\?.*)?$/);
+    let cleanUrl = url.trim();
+    // Chuẩn hóa trường hợp thumbnail có đuôi kép của NHentai (VD: 2t.jpg.webp -> 2t.webp, 8t.webp.webp -> 8t.webp)
+    cleanUrl = cleanUrl.replace(/\.(jpg|jpeg|png|webp)\.webp$/i, '.webp');
+    
+    const match = cleanUrl.match(/^(.*\/)(\d+)([a-zA-Z]*)\.(\w+)(\?.*)?$/);
     if (!match) return null;
 
     const prefix = match[1];
@@ -447,6 +453,7 @@ function parseHentaifoxUrl(url) {
     return { prefix, pageNumber, suffix, extension, galleryId };
 }
 
+
 /**
  * Tự động sinh danh sách toàn bộ URL ảnh từ trang startPage đến endPage:
  * - startPage: Trang bắt đầu (VD: 1, 15, 21...)
@@ -459,34 +466,146 @@ function generatePageUrls(baseUrl, startPage = 1, endPage = 1) {
     const end = Math.max(s, e);
     const total = end - start + 1;
 
-    const parsed = parseHentaifoxUrl(baseUrl);
+    const parsed = parseMangaUrl(baseUrl);
     if (!parsed) {
         return Array.from({ length: total }, () => baseUrl);
     }
     // Bỏ hậu tố 't' (thumbnail) để người đọc luôn xem ảnh gốc chất lượng cao nhất
     const cleanSuffix = (parsed.suffix && parsed.suffix.toLowerCase() === 't') ? '' : parsed.suffix;
+    // NHentai: chuyển domain thumbnail (t/t1-t4) sang domain ảnh gốc (i/i1-i4)
+    const cleanPrefix = parsed.prefix.replace(/:\/\/t(\d*)\.nhentai\.net\//g, '://i$1.nhentai.net/');
     return Array.from({ length: total }, (_, i) => {
         const pageNum = start + i;
-        return `${parsed.prefix}${pageNum}${cleanSuffix}.${parsed.extension}`;
+        return `${cleanPrefix}${pageNum}${cleanSuffix}.${parsed.extension}`;
     });
 }
 
-/**
- * Trích xuất gallery_id từ URL
- */
-function extractGalleryId(url) {
-    const parsed = parseHentaifoxUrl(url);
-    return parsed ? parsed.galleryId : null;
-}
 
 /**
  * Chuyển đổi bất kỳ URL trang nào (VD: .../236t.jpg, .../15.jpg) thành link ảnh bìa trang 1 Full HD (VD: .../1.jpg)
  */
 function getPageOneCoverUrl(url, highRes = true) {
-    const parsed = parseHentaifoxUrl(url);
+    const parsed = parseMangaUrl(url);
     if (!parsed) return url;
     const cleanSuffix = (highRes && parsed.suffix && parsed.suffix.toLowerCase() === 't') ? '' : parsed.suffix;
-    return `${parsed.prefix}1${cleanSuffix}.${parsed.extension}`;
+    // NHentai: chuyển domain thumbnail (t/t1-t4) sang domain ảnh gốc (i/i1-i4)
+    let cleanPrefix = parsed.prefix;
+    if (highRes) {
+        cleanPrefix = cleanPrefix.replace(/:\/\/t(\d*)\.nhentai\.net\//g, '://i$1.nhentai.net/');
+    }
+    return `${cleanPrefix}1${cleanSuffix}.${parsed.extension}`;
+}
+
+/**
+ * Smart Fallback: Tự động thử các định dạng ảnh thay thế (.webp ⇄ .jpg ⇄ .png ⇄ .jpeg)
+ * khi gặp lỗi 404 do một bộ truyện có nhiều định dạng ảnh xen kẽ.
+ * @param {HTMLImageElement} img - Thẻ ảnh xảy ra sự kiện onerror
+ * @param {Function} [onFinalFail] - Callback khi đã thử tất cả định dạng nhưng vẫn thất bại
+ */
+function handleImageFallback(img, onFinalFail) {
+    if (!img || !img.src) return;
+    
+    // Danh sách định dạng thử nghiệm theo thứ tự ưu tiên
+    const candidateExts = ['webp', 'jpg', 'png', 'jpeg'];
+    
+    // Khởi tạo danh sách các đuôi đã thử
+    let tried = (img.dataset.triedExts || '').split(',').filter(Boolean);
+    
+    const currentUrl = img.src;
+    const match = currentUrl.match(/\.([a-zA-Z0-9]+)(\?.*)?$/);
+    if (!match) {
+        fallbackToErrorImage(img, onFinalFail);
+        return;
+    }
+    
+    const currentExt = match[1].toLowerCase();
+    if (!tried.includes(currentExt)) {
+        tried.push(currentExt);
+    }
+    
+    // Tìm định dạng tiếp theo chưa thử
+    const nextExt = candidateExts.find(ext => !tried.includes(ext));
+    if (nextExt) {
+        tried.push(nextExt);
+        img.dataset.triedExts = tried.join(',');
+        const newUrl = currentUrl.replace(/\.([a-zA-Z0-9]+)(\?.*)?$/, `.${nextExt}$2`);
+        img.src = newUrl;
+    } else {
+        // Đã thử hết toàn bộ định dạng -> gán ảnh lỗi mặc định
+        fallbackToErrorImage(img, onFinalFail);
+    }
+}
+
+function fallbackToErrorImage(img, onFinalFail) {
+    img.onerror = null;
+    img.src = 'rem.jpg';
+    img.style.maxHeight = '300px';
+    if (typeof onFinalFail === 'function') {
+        onFinalFail(img);
+    }
+}
+
+/**
+ * Thử tải 1 ảnh qua nhiều định dạng dự phòng (dùng cho tính năng Test tải thử trang)
+ * @param {string} url - URL ảnh bắt đầu
+ * @param {Function} onDone - Callback (success: boolean, finalUrl: string)
+ */
+function testSingleImageWithFallback(url, onDone) {
+    const candidateExts = ['webp', 'jpg', 'png', 'jpeg'];
+    const match = url.match(/\.([a-zA-Z0-9]+)(\?.*)?$/);
+    const origExt = match ? match[1].toLowerCase() : 'jpg';
+    let tried = [origExt];
+
+    function tryUrl(targetUrl) {
+        const img = new Image();
+        img.referrerPolicy = 'no-referrer';
+        img.onload = () => {
+            onDone(true, targetUrl);
+        };
+        img.onerror = () => {
+            const nextExt = candidateExts.find(ext => !tried.includes(ext));
+            if (nextExt) {
+                tried.push(nextExt);
+                const newUrl = targetUrl.replace(/\.([a-zA-Z0-9]+)(\?.*)?$/, `.${nextExt}$2`);
+                tryUrl(newUrl);
+            } else {
+                onDone(false, targetUrl);
+            }
+        };
+        img.src = targetUrl;
+    }
+
+    tryUrl(url);
+}
+
+/**
+ * Render HTML cho một thẻ truyện (Comic Card) dùng chung trên trang chủ, tìm kiếm, thể loại, tác giả.
+ * @param {Object} comic - Object chứa thông tin truyện ({id, title, author, cover_filename, gallery_id, genres})
+ * @returns {string} Chuỗi HTML của thẻ truyện
+ */
+function renderComicCard(comic) {
+    const coverUrl = api.getCoverUrl(comic.cover_filename);
+    const genresHtml = (comic.genres || []).slice(0, 3).map(g =>
+        `<span class="tag-chip">${g}</span>`
+    ).join('') + ((comic.genres && comic.genres.length > 3) ? `<span class="tag-chip">+${comic.genres.length - 3}</span>` : '');
+    const titleSafe = (comic.title || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+    return `
+        <div class="comic-card" onclick="window.location.href='detail.html?id=${comic.id}'" style="cursor: pointer;">
+            <div class="card-thumb-wrapper">
+                ${comic.gallery_id ? `<span class="card-id-badge">${comic.gallery_id}</span>` : ''}
+                <button type="button" class="btn-card-delete" onclick="handleDeleteComicCard(event, ${comic.id}, '${titleSafe}')" title="Xóa bộ truyện này">
+                    🗑️
+                </button>
+                <img src="${coverUrl}" alt="${titleSafe}" class="card-thumb" referrerpolicy="no-referrer" onerror="this.src='rem.jpg'">
+            </div>
+            <div class="card-body">
+                <div class="card-title" title="${titleSafe}">${comic.title}</div>
+                <div class="card-author">${comic.author || 'Tác giả chưa rõ'}</div>
+                <div class="card-tags">${genresHtml}</div>
+            </div>
+        </div>
+    `;
 }
 
 // ==================== 4. GENRE SELECTOR COMPONENT (CHỌN THỂ LOẠI) ====================

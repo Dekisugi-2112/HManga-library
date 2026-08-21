@@ -12,7 +12,7 @@
 -- - title: Tên bộ truyện
 -- - author: Tên tác giả
 -- - cover_filename: Tên file ảnh bìa lưu tại local (VD: 001-48410.jpg)
--- - source_url: Đường link gốc tham khảo từ hentaifox
+-- - source_url: Đường link gốc tham khảo từ nhentai
 CREATE TABLE IF NOT EXISTS public.comics (
     id SERIAL PRIMARY KEY,
     gallery_id VARCHAR(50),

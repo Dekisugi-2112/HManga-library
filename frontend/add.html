@@ -2,7 +2,7 @@
   HManga Library — Trang Thêm Truyện Mới (add.html)
   =================================================
   Nhiệm vụ:
-  1. Phân tích cú pháp URL ảnh hentaifox (bóc tách gallery_id, suffix 't', đuôi file ảnh).
+  1. Phân tích cú pháp URL ảnh nhentai (bóc tách gallery_id, suffix 't', đuôi file ảnh).
   2. Kiểm tra bộ truyện đã có trong thư viện chưa (nếu đã có -> cho phép thêm nhanh chương mới).
   3. Tạo danh sách URL xem trước và hỗ trợ test tải thử 3 trang đầu (referrerpolicy="no-referrer").
   4. Nhập thông tin bộ truyện: Tên truyện, Tác giả (gợi ý thông minh với AuthorAutocomplete), Thể loại (chọn dạng Chips với GenreSelector).
@@ -33,7 +33,7 @@
                 <form class="quick-search-form" id="quickSearchForm" action="index.html" method="GET" autocomplete="off">
                     <div class="quick-search-wrapper">
                         <img src="data-icon/search.png" alt="Search" class="quick-search-icon">
-                        <input type="search" name="s" id="inputQuickSearch" class="quick-search-input" placeholder="Search..." autocomplete="off">
+                        <input type="search" name="s" id="inputQuickSearch" class="quick-search-input" placeholder="Tìm tên truyện..." autocomplete="off">
                     </div>
                     <a href="search.html" id="btnGoAdvanced" class="btn-go-advanced" title="Advanced Search">
                         <svg class="bolt-icon" viewBox="0 0 24 24">
@@ -59,10 +59,10 @@
         <!-- Tiêu đề trang -->
         <div class="page-header">
             <h1 class="page-title">➕ Thêm Truyện Mới</h1>
-            <p class="page-subtitle">Nhập link ảnh từ hentaifox để bóc tách thông tin và khởi tạo bộ truyện vào thư viện</p>
+            <p class="page-subtitle">Nhập link ảnh từ nhentai để bóc tách thông tin và khởi tạo bộ truyện vào thư viện</p>
         </div>
 
-        <!-- PHẦN 1: BÓC TÁCH & KIỂM TRA ĐƯỜNG LINK ẢNH HENTAIFOX -->
+        <!-- PHẦN 1: BÓC TÁCH & KIỂM TRA ĐƯỜNG LINK ẢNH NHENTAI -->
         <div class="card">
             <h2 style="font-size: 16px; margin-bottom: 14px; color: #818cf8; display: flex; align-items: center; gap: 8px;">
                 🔗 1. Phân Tích & Kiểm Tra URL Ảnh
@@ -71,7 +71,7 @@
             <div class="form-group">
                 <label class="form-label">Dán URL ảnh bất kỳ (Ví dụ trang 1 hoặc 1t):</label>
                 <div style="display: flex; gap: 8px;">
-                    <input type="text" id="input-url" class="form-control" placeholder="https://i3.hentaifox.com/004/4029076/1t.jpg">
+                    <input type="text" id="input-url" class="form-control" placeholder="https://t3.nhentai.net/galleries/4126277/1t.webp">
                     <button type="button" id="btn-analyze" class="btn btn-primary" style="white-space: nowrap;">Phân tích</button>
                 </div>
             </div>
@@ -128,9 +128,25 @@
                     📝 2. Thông Tin Bộ Truyện
                 </h2>
 
-                <div class="form-group">
-                    <label class="form-label">Tên truyện *</label>
-                    <input type="text" id="comic-title" class="form-control" placeholder="Nhập tên bộ truyện..." required>
+                <div class="form-group" style="position: relative;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <label class="form-label" style="margin: 0;">Tên truyện *</label>
+                        <span id="title-check-status" style="font-size: 12px;"></span>
+                    </div>
+                    <input type="text" id="comic-title" class="form-control" placeholder="Nhập tên bộ truyện..." required autocomplete="off">
+
+                    <!-- Cảnh báo nếu tên truyện bị trùng hoặc tương tự truyện đã có -->
+                    <div id="title-duplicate-alert" style="display: none; margin-top: 10px; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 8px; padding: 12px 14px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                            <span style="color: var(--warning); font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                                ⚠️ Cảnh báo: Phát hiện truyện có tên tương tự đã tồn tại trong thư viện!
+                            </span>
+                            <span id="duplicate-match-count" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700;">1 trùng khớp</span>
+                        </div>
+                        <div id="duplicate-comics-list" style="display: flex; flex-direction: column; gap: 8px;">
+                            <!-- Danh sách các truyện tương tự -->
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Gợi ý tác giả thông minh (AuthorAutocompleteComponent) -->
@@ -182,6 +198,8 @@
         let currentParsed = null;
         let generatedUrls = [];
         let existingComicData = null;
+        let allExistingComics = [];
+        let titleCheckDebounceTimer = null;
 
         // Khởi tạo các Component: Chọn thể loại và Gợi ý tác giả
         document.addEventListener('DOMContentLoaded', async () => {
@@ -203,22 +221,29 @@
             } catch (err) {
                 console.warn('Lỗi nạp gợi ý tác giả:', err);
             }
+
+            // Nạp danh sách tất cả các bộ truyện để phục vụ kiểm tra trùng lặp tên truyện tức thì
+            try {
+                allExistingComics = await api.getComics();
+            } catch (err) {
+                console.warn('Lỗi nạp danh sách truyện để kiểm tra trùng tên:', err);
+            }
         });
 
         /**
-         * Phân tích cú pháp đường dẫn URL từ hentaifox
+         * Phân tích cú pháp đường dẫn URL từ nhentai
          */
         async function analyzeUrl() {
             const url = document.getElementById('input-url').value.trim();
             if (!url) {
-                showToast('Vui lòng dán một URL ảnh từ hentaifox!', 'warning');
+                showToast('Vui lòng dán một URL ảnh từ nhentai!', 'warning');
                 return;
             }
 
             // Bóc tách cấu trúc URL
-            const parsed = parseHentaifoxUrl(url);
+            const parsed = parseMangaUrl(url);
             if (!parsed) {
-                showToast('URL không đúng định dạng hentaifox! (Ví dụ: https://.../4029076/1t.jpg)', 'error');
+                showToast('URL không đúng định dạng! (Ví dụ: https://t3.nhentai.net/galleries/4126277/1t.webp)', 'error');
                 return;
             }
 
@@ -294,7 +319,7 @@
         }
 
         /**
-         * Test tải thử 3 trang đầu tiên với referrerpolicy="no-referrer" để kiểm tra tính hợp lệ của link
+         * Test tải thử 3 trang đầu tiên với referrerpolicy="no-referrer" và cơ chế Smart Fallback tự động
          */
         function testImages() {
             if (generatedUrls.length === 0) return;
@@ -304,17 +329,252 @@
                 if (!statusEl) continue;
                 statusEl.innerHTML = '<span style="color: var(--warning);">⏳ Đang nạp...</span>';
                 
-                const img = new Image();
-                img.referrerPolicy = 'no-referrer';
-                img.onload = () => { statusEl.innerHTML = '<span style="color: var(--success);">✅ OK</span>'; };
-                img.onerror = () => { statusEl.innerHTML = '<span style="color: var(--danger);">❌ Lỗi</span>'; };
-                img.src = generatedUrls[i];
+                testSingleImageWithFallback(generatedUrls[i], (success, finalUrl) => {
+                    if (success) {
+                        const extMatch = finalUrl.match(/\.([a-zA-Z0-9]+)(\?.*)?$/);
+                        const extLabel = extMatch ? ` (${extMatch[1]})` : '';
+                        statusEl.innerHTML = `<span style="color: var(--success);">✅ OK${extLabel}</span>`;
+                    } else {
+                        statusEl.innerHTML = '<span style="color: var(--danger);">❌ Lỗi</span>';
+                    }
+                });
             }
         }
 
         document.getElementById('btn-analyze').addEventListener('click', analyzeUrl);
         document.getElementById('btn-generate-urls').addEventListener('click', updateUrlList);
         document.getElementById('btn-test-images').addEventListener('click', testImages);
+
+        // ==================== KIỂM TRA TRÙNG LẶP / TƯƠNG ĐỒNG TÊN TRUYỆN ====================
+        /**
+         * Chuẩn hóa tên truyện để so sánh (loại bỏ ký tự đặc biệt, thẻ phụ, chữ hoa/thường)
+         */
+        function normalizeTitle(str) {
+            if (!str) return '';
+            return str
+                .toLowerCase()
+                .replace(/\[.*?\]|\(.*?\)/g, '') // Bỏ thẻ như [Digital], (Color)
+                .replace(/[^a-z0-9\u00C0-\u024F\u1EA0-\u1EF9]/gi, ' ') // Giữ chữ cái, tiếng Việt & số
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        /**
+         * Tính khoảng cách Levenshtein giữa 2 chuỗi
+         */
+        function levenshteinDistance(a, b) {
+            if (a.length === 0) return b.length;
+            if (b.length === 0) return a.length;
+            const matrix = [];
+            for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+            for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+            for (let i = 1; i <= b.length; i++) {
+                for (let j = 1; j <= a.length; j++) {
+                    if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                        matrix[i][j] = matrix[i - 1][j - 1];
+                    } else {
+                        matrix[i][j] = Math.min(
+                            matrix[i - 1][j - 1] + 1,
+                            matrix[i][j - 1] + 1,
+                            matrix[i - 1][j] + 1
+                        );
+                    }
+                }
+            }
+            return matrix[b.length][a.length];
+        }
+
+        /**
+         * Tính toán điểm tương đồng giữa tên nhập vào và tên truyện trong database (0.0 -> 1.0)
+         */
+        function computeTitleSimilarity(inputTitle, targetTitle) {
+            const s1 = normalizeTitle(inputTitle);
+            const s2 = normalizeTitle(targetTitle);
+
+            if (!s1 || !s2) return 0;
+            if (s1 === s2) return 1.0;
+
+            // 1. Kiểm tra bao hàm (Substring match)
+            if (s1.length >= 3 && (s2.includes(s1) || s1.includes(s2))) {
+                const ratio = Math.min(s1.length, s2.length) / Math.max(s1.length, s2.length);
+                return Math.max(0.75, ratio);
+            }
+
+            // 2. Kiểm tra trùng lặp từ khóa (Token overlap)
+            const words1 = s1.split(' ').filter(w => w.length > 1);
+            const words2 = s2.split(' ').filter(w => w.length > 1);
+            if (words1.length === 0 || words2.length === 0) return 0;
+
+            const set2 = new Set(words2);
+            const common = words1.filter(w => set2.has(w));
+            const tokenScore = (2 * common.length) / (words1.length + words2.length);
+
+            // 3. Khoảng cách Levenshtein cho lỗi chính tả nhỏ
+            const levDist = levenshteinDistance(s1, s2);
+            const maxLen = Math.max(s1.length, s2.length);
+            const levScore = maxLen > 0 ? (1 - levDist / maxLen) : 0;
+
+            return Math.max(tokenScore, levScore);
+        }
+
+        /**
+         * Kiểm tra thời gian thực xem tên truyện nhập vào có bị trùng với truyện nào không
+         */
+        function checkTitleDuplicates(val) {
+            const alertBox = document.getElementById('title-duplicate-alert');
+            const listEl = document.getElementById('duplicate-comics-list');
+            const countBadge = document.getElementById('duplicate-match-count');
+            const statusEl = document.getElementById('title-check-status');
+
+            if (!val || val.length < 2 || allExistingComics.length === 0) {
+                alertBox.style.display = 'none';
+                if (statusEl) statusEl.innerHTML = '';
+                return;
+            }
+
+            const normVal = normalizeTitle(val);
+            const matches = [];
+
+            for (const c of allExistingComics) {
+                const normExisting = normalizeTitle(c.title);
+                const sim = computeTitleSimilarity(val, c.title);
+
+                let matchType = null;
+                if (normVal === normExisting) {
+                    matchType = 'exact'; // Trùng khớp 100%
+                } else if (normVal.length >= 3 && (normExisting.includes(normVal) || normVal.includes(normExisting))) {
+                    matchType = 'contains'; // Tên chứa nhau
+                } else if (sim >= 0.55) {
+                    matchType = 'similar'; // Gần giống
+                }
+
+                if (matchType) {
+                    matches.push({
+                        comic: c,
+                        similarity: sim,
+                        matchType: matchType
+                    });
+                }
+            }
+
+            // Sắp xếp mức độ trùng khớp cao nhất lên đầu
+            matches.sort((a, b) => b.similarity - a.similarity);
+
+            if (matches.length === 0) {
+                alertBox.style.display = 'none';
+                if (statusEl) {
+                    statusEl.innerHTML = '<span style="color: var(--success); font-weight: 500;">✓ Tên khả dụng</span>';
+                }
+                return;
+            }
+
+            if (statusEl) {
+                const isExact = matches.some(m => m.matchType === 'exact');
+                statusEl.innerHTML = isExact 
+                    ? '<span style="color: var(--danger); font-weight: 600;">⚠️ Tên bị trùng!</span>' 
+                    : '<span style="color: var(--warning); font-weight: 500;">⚠️ Có tên tương tự</span>';
+            }
+
+            countBadge.textContent = `${matches.length} bộ truyện tương tự`;
+
+            listEl.innerHTML = matches.slice(0, 5).map(item => {
+                const c = item.comic;
+                const coverUrl = api.getCoverUrl(c.cover_filename);
+                const safeTitle = (c.title || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+                let badgeText = 'Tương đồng';
+                let badgeColor = 'var(--warning)';
+                if (item.matchType === 'exact') {
+                    badgeText = '🔴 Trùng khớp 100%';
+                    badgeColor = 'var(--danger)';
+                } else if (item.matchType === 'contains') {
+                    badgeText = '🟡 Chứa tên này';
+                    badgeColor = '#fbbf24';
+                } else {
+                    badgeText = `🟠 Giống ${Math.round(item.similarity * 100)}%`;
+                    badgeColor = '#f97316';
+                }
+
+                return `
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; background: rgba(5, 10, 22, 0.85); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 8px 12px;">
+                        <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
+                            <img src="${coverUrl}" alt="${safeTitle}" style="width: 38px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color); flex-shrink: 0;" referrerpolicy="no-referrer" onerror="this.src='rem.jpg'">
+                            <div style="min-width: 0; flex: 1;">
+                                <div style="font-weight: 600; font-size: 13px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeTitle}">
+                                    ${c.title}
+                                </div>
+                                <div style="font-size: 11px; color: var(--text-dim); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 2px;">
+                                    <span>✍️ ${c.author || 'Chưa rõ'}</span>
+                                    ${c.gallery_id ? `<span>• ID: ${c.gallery_id}</span>` : ''}
+                                    <span style="color: ${badgeColor}; font-weight: 700;">${badgeText}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 6px; flex-shrink: 0;">
+                            <button type="button" class="btn btn-warning btn-sm" style="font-size: 11px; padding: 5px 10px;" onclick="useExistingComicFromTitle(${c.id})">
+                                📖 Thêm chương vào bộ này
+                            </button>
+                            <a href="detail.html?id=${c.id}" target="_blank" class="btn btn-secondary btn-sm" style="font-size: 11px; padding: 5px 8px;" title="Xem chi tiết truyện">
+                                👁️
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            alertBox.style.display = 'block';
+        }
+
+        /**
+         * Khi người dùng chọn sử dụng bộ truyện bị trùng để thêm chương mới
+         */
+        async function useExistingComicFromTitle(comicId) {
+            try {
+                const fullComic = await api.getComic(comicId);
+                if (!fullComic) return;
+
+                existingComicData = fullComic;
+                document.getElementById('existing-comic-text').textContent = 
+                    `Bộ truyện "${fullComic.title}" (${fullComic.author || 'Tác giả chưa rõ'}) đã có ${fullComic.chapters?.length || 0} chương.`;
+                document.getElementById('btn-view-existing').href = `detail.html?id=${fullComic.id}`;
+                document.getElementById('existing-comic-alert').style.display = 'block';
+
+                // Tự động đồng bộ tên, tác giả và thể loại
+                document.getElementById('comic-title').value = fullComic.title;
+                if (fullComic.author) document.getElementById('comic-author').value = fullComic.author;
+                if (fullComic.genres && genreSelector) genreSelector.setSelectedGenres(fullComic.genres);
+
+                // Tự động tính số chương và trang bắt đầu tiếp theo
+                const chapters = fullComic.chapters || [];
+                if (chapters.length > 0) {
+                    const maxNum = Math.max(...chapters.map(c => c.chapter_number));
+                    document.getElementById('chapter-number').value = maxNum + 1;
+
+                    const maxEndPage = Math.max(...chapters.map(c => c.end_page || c.total_pages || 0));
+                    if (maxEndPage > 0) {
+                        document.getElementById('input-start-page').value = maxEndPage + 1;
+                    }
+                }
+
+                // Ẩn bảng cảnh báo trùng lặp sau khi đã xác nhận chọn
+                document.getElementById('title-duplicate-alert').style.display = 'none';
+                showToast(`Đã chọn bộ truyện "${fullComic.title}"! Bạn có thể tiếp tục thêm chương mới.`, 'info');
+
+            } catch (err) {
+                showToast('Lỗi nạp thông tin bộ truyện: ' + err.message, 'error');
+            }
+        }
+
+        // Lắng nghe sự kiện gõ tên truyện với Debounce 250ms
+        const titleInputElement = document.getElementById('comic-title');
+        if (titleInputElement) {
+            titleInputElement.addEventListener('input', (e) => {
+                clearTimeout(titleCheckDebounceTimer);
+                titleCheckDebounceTimer = setTimeout(() => {
+                    checkTitleDuplicates(e.target.value.trim());
+                }, 250);
+            });
+        }
 
         /**
          * Xử lý thêm chương mới vào bộ truyện đã tồn tại sẵn

@@ -35,7 +35,7 @@ body {
     background-color: var(--bg-main);
     background-image: 
         linear-gradient(rgba(2, 6, 23, 0.2), rgba(2, 6, 23, 0.3)),
-        url('backround.jpg');
+        url('background.jpg');
     background-attachment: fixed;
     background-position: center center;
     background-repeat: no-repeat;
@@ -745,63 +745,6 @@ body {
     font-weight: 600;
 }
 
-/* Tag Input Component */
-.tag-input-container {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
-    background: var(--bg-input);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 8px 10px;
-    min-height: 42px;
-    cursor: text;
-}
-
-.tag-input-container:focus-within {
-    border-color: var(--primary);
-}
-
-.tag-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 3px 8px;
-    border-radius: 6px;
-    font-size: 12px;
-    background: rgba(99, 102, 241, 0.15);
-    color: #a5b4fc;
-    border: 1px solid rgba(99, 102, 241, 0.25);
-}
-
-.tag-remove {
-    cursor: pointer;
-    color: #818cf8;
-    font-weight: bold;
-}
-.tag-remove:hover {
-    color: var(--danger);
-}
-
-.tag-text-input {
-    flex: 1;
-    min-width: 120px;
-    background: transparent;
-    border: none;
-    color: var(--text-main);
-    font-size: 13px;
-    outline: none;
-}
-
-/* ==================== URL CHECKER BOX ==================== */
-.url-checker-box {
-    background: #090d16;
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
-    padding: 16px;
-    margin-bottom: 20px;
-}
 
 .preview-list {
     max-height: 160px;

@@ -7,7 +7,7 @@ Xử lý toàn bộ logic nghiệp vụ (CRUD) liên quan đến bộ truyện (
 3. Tạo truyện mới và tự động liên kết các thể loại được chọn trong bảng `comic_genres`.
 4. Cập nhật thông tin truyện và cập nhật lại danh sách thể loại liên kết.
 5. Xóa truyện (tự động dọn dẹp chapters, liên kết thể loại và xóa file ảnh bìa local).
-6. Kiểm tra truyện đã tồn tại theo gallery_id của hentaifox.
+6. Kiểm tra truyện đã tồn tại theo gallery_id của nhentai.
 7. Đồng bộ dữ liệu ra file cache JSON cục bộ.
 """
 
@@ -21,7 +21,7 @@ CACHE_FILE = Path(__file__).parent.parent.parent.parent / "comics_cache.json"
 
 def extract_gallery_id_from_url(source_url: str = None, cover_filename: str = None) -> str:
     """
-    Trích xuất mã Gallery ID định dạng 'xxx-xxxxx' (VD: '001-48410').
+    Trích xuất mã Gallery ID (Media ID) từ URL hoặc tên file ảnh bìa (VD: '4126277' hoặc '001-48410').
     Ưu tiên bóc tách từ cover_filename hoặc từ source_url.
     """
     if cover_filename:
@@ -120,7 +120,7 @@ def resolve_comic_id(comic_identifier) -> int:
             res = supabase.table("comics").select("id").or_(f"gallery_id.eq.{comic_identifier},cover_filename.ilike.{comic_identifier}.%,source_url.ilike.{url_pattern}").execute()
             if res.data:
                 return res.data[0]["id"]
-        except:
+        except Exception:
             pass
     return None
 
@@ -193,7 +193,7 @@ def create_comic(comic_data: ComicCreate):
             print(f"[Warning] Error finding/creating genre: {e}")
             
     # Bước 2: Thêm truyện vào bảng comics (loại bỏ trường genres dạng mảng trước khi insert vào table comics)
-    comic_dict = comic_data.dict(exclude={"genres"})
+    comic_dict = comic_data.model_dump(exclude={"genres"})
     
     # Tự động gán gallery_id theo định dạng 'xxx-xxxxx' nếu chưa có
     if not comic_dict.get("gallery_id") and comic_dict.get("source_url"):
@@ -234,7 +234,7 @@ def update_comic(comic_id, comic_data: ComicUpdate):
         return None
 
     # 1. Cập nhật các trường cơ bản trong bảng comics
-    comic_dict = {k: v for k, v in comic_data.dict(exclude={"genres"}).items() if v is not None}
+    comic_dict = {k: v for k, v in comic_data.model_dump(exclude={"genres"}).items() if v is not None}
     if comic_dict:
         try:
             supabase.table("comics").update(comic_dict).eq("id", real_id).execute()
@@ -322,8 +322,8 @@ def delete_comic(comic_id) -> bool:
 
 def check_comic_by_gallery_id(gallery_id: str):
     """
-    Kiểm tra xem truyện tranh từ hentaifox đã tồn tại trong thư viện chưa
-    thông qua ID gallery (VD: '001-48410' hoặc '48410').
+    Kiểm tra xem truyện tranh đã tồn tại trong thư viện chưa
+    thông qua ID gallery (VD: '4126277' hoặc '001-48410').
     - Tra cứu chuỗi `/001/48410/` hoặc `/{gallery_id}/` trong cột source_url.
     - Nếu đã có, trả về object chi tiết truyện kèm danh sách chương để người dùng có thể thêm tiếp chương.
     """
@@ -339,7 +339,7 @@ def check_comic_by_gallery_id(gallery_id: str):
         try:
             genres_response = supabase.table("comic_genres").select("genres(name)").eq("comic_id", comic["id"]).execute()
             comic["genres"] = [item["genres"]["name"] for item in genres_response.data or []]
-        except:
+        except Exception:
             pass
         try:
             chapters_response = supabase.table("chapters").select("*").eq("comic_id", comic["id"]).order("chapter_number").execute()
@@ -351,7 +351,7 @@ def check_comic_by_gallery_id(gallery_id: str):
                 ch["end_page"] = e_page
                 ch["total_pages"] = max(1, e_page - s_page + 1)
             comic["chapters"] = chapters
-        except:
+        except Exception:
             comic["chapters"] = []
         return comic
     return None
@@ -375,7 +375,7 @@ def update_cache():
                     ch["start_page"] = s_page
                     ch["end_page"] = e_page
                 comic["chapters"] = ch_list
-            except:
+            except Exception:
                 comic["chapters"] = []
             
         from datetime import datetime

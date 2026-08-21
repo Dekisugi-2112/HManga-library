@@ -6,7 +6,7 @@ Authors Schemas Module
 - AuthorResponse: Dữ liệu trả về biểu diễn tên tác giả và số lượng tác phẩm.
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 class AuthorRenameRequest(BaseModel):
     """
@@ -26,5 +26,4 @@ class AuthorResponse(BaseModel):
     name: str
     comic_count: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

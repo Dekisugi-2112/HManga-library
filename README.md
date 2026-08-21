@@ -1,27 +1,25 @@
 # 📚 HManga-library
-uvicorn main:app --reload
-Website đọc truyện tranh cá nhân — lưu trữ và đọc manga/manhwa/manhua từ nhiều nguồn (tối ưu cho hentaifox).
 
-## web
-- Hentaifox
-- NHentai
-- ImHentai
-- AsmHentai
+Website đọc truyện tranh cá nhân — lưu trữ và đọc manga/manhwa/manhua từ nhiều nguồn (tối ưu cho NHentai).
 
-
-cd backend
-pip install -r requirements.txt
-python restore_from_cache.py
+---
 
 ## 🏗️ Kiến trúc
 
 ```
 HManga-library/
-├── backend/          ← FastAPI (Python) — Modular Monolith
-├── frontend/         ← HTML5 + Modern Dark CSS + Vanilla JS
-├── cover-images/     ← Ảnh bìa tải về local (đặt theo gallery_id)
-├── database_schema.sql
-└── .env              ← Supabase credentials
+├── backend/                ← FastAPI (Python) — Modular Monolith
+│   ├── core/               ← Config & Database connection
+│   ├── modules/            ← Comics, Chapters, Genres, Authors, Images, Search
+│   ├── main.py             ← Entry point
+│   ├── restore_from_cache.py ← Script khôi phục dữ liệu
+│   └── requirements.txt
+├── frontend/               ← HTML5 + Modern Dark CSS + Vanilla JS
+├── cover-images/           ← Ảnh bìa tải về local (đặt theo gallery_id)
+├── comics_cache.json       ← File backup dữ liệu (tự động cập nhật)
+├── database_schema.sql     ← SQL tạo bảng cho Supabase
+├── .env.example            ← Mẫu cấu hình biến môi trường
+└── .env                    ← Supabase credentials (không commit)
 ```
 
 | Thành phần | Công nghệ | Port |
@@ -32,21 +30,63 @@ HManga-library/
 
 ---
 
-## ⚡ Hướng dẫn chạy (Chỉ cần 1 lệnh duy nhất)
+## ⚡ Cài đặt & Chạy lần đầu (Fresh Clone)
 
-### Bước 1: Cài đặt Python dependencies
-
-Mở terminal, chạy:
+### Bước 1: Clone repository
 
 ```powershell
-cd D:\AI_My_Project\HManga-library\backend
+git clone https://github.com/Dekisugi-2112/HManga-library.git
+cd HManga-library
+```
+
+### Bước 2: Tạo file `.env`
+
+Sao chép file mẫu và điền thông tin Supabase:
+
+```powershell
+copy .env.example .env
+```
+
+Mở file `.env` và điền:
+
+```env
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+> **Lấy thông tin tại:** [Supabase Dashboard](https://supabase.com/dashboard) → Project Settings → API
+
+### Bước 3: Tạo Database
+
+1. Mở **Supabase Dashboard** → **SQL Editor**.
+2. Copy toàn bộ nội dung file `database_schema.sql` và chạy.
+3. Các bảng `comics`, `genres`, `comic_genres`, `chapters` sẽ được tạo tự động.
+
+### Bước 4: Cài đặt Python dependencies
+
+```powershell
+cd backend
 pip install -r requirements.txt
 ```
 
-### Bước 2: Khởi chạy Server
+### Bước 5: Khôi phục dữ liệu từ backup
 
 ```powershell
-cd D:\AI_My_Project\HManga-library\backend
+cd backend
+python restore_from_cache.py
+```
+
+Script sẽ tự động:
+- ✅ Phục hồi toàn bộ truyện, thể loại, chương vào Supabase
+- ✅ Tải lại ảnh bìa bị thiếu về `cover-images/`
+- ✅ Reset auto-increment sequences
+- ✅ Đồng bộ lại file `comics_cache.json`
+
+### Bước 6: Khởi chạy Server
+
+```powershell
+cd backend
 uvicorn main:app --reload
 ```
 
@@ -56,7 +96,7 @@ INFO:     Uvicorn running on http://127.0.0.1:8000
 INFO:     Application startup complete.
 ```
 
-### Bước 3: Mở trình duyệt
+### Bước 7: Mở trình duyệt
 
 Truy cập: **http://localhost:8000** (hoặc `http://127.0.0.1:8000`)
 
@@ -64,93 +104,101 @@ Truy cập: **http://localhost:8000** (hoặc `http://127.0.0.1:8000`)
 
 ---
 
+## 🔄 Khôi phục dữ liệu từ Backup (Disaster Recovery)
+
+Khi cần khôi phục dữ liệu (xóa DB, tạo Supabase mới, hoặc clone lại về máy mới):
+
+1. Đảm bảo file `.env` đã có thông tin Supabase mới.
+2. Chạy `database_schema.sql` trong **Supabase SQL Editor**.
+3. Chạy script khôi phục:
+
+```powershell
+cd backend
+python restore_from_cache.py
+```
+
+> **Lưu ý:** Nếu gặp lỗi trùng ID khi thêm truyện mới sau khi khôi phục, chạy SQL sau trong Supabase SQL Editor:
+> ```sql
+> SELECT setval('comics_id_seq', COALESCE((SELECT MAX(id) FROM comics), 0) + 1, false);
+> SELECT setval('chapters_id_seq', COALESCE((SELECT MAX(id) FROM chapters), 0) + 1, false);
+> SELECT setval('genres_id_seq', COALESCE((SELECT MAX(id) FROM genres), 0) + 1, false);
+> ```
+
+---
+
 ## 📖 Tính năng & Cách sử dụng
 
 ### 1. Thêm truyện mới (`/add.html`)
 1. Bấm **"+ Thêm truyện"** trên thanh điều hướng.
-2. **Kiểm tra URL**: Dán link ảnh từ hentaifox (VD: `https://i3.hentaifox.com/004/4029076/1t.jpg`) $\rightarrow$ Bấm **"Phân tích"**.
-3. Hệ thống sẽ tự động bóc tách `gallery_id` và kiểm tra xem truyện đã tồn tại chưa:
-   - Nếu **đã có trong thư viện**: Cho phép thêm ngay chương mới vào bộ truyện đó.
-   - Nếu **chưa có**: Nhập số trang $\rightarrow$ Bấm **"Cập nhật danh sách trang"** $\rightarrow$ Có thể bấm **"Test tải 3 trang đầu"** để kiểm tra.
-4. Điền tên truyện, chọn/nhập tác giả (có gợi ý tự động).
-5. **Chọn thể loại**: Bấm chọn trực tiếp các thể loại từ danh sách có sẵn (không cần gõ tay).
-6. Bấm **"Lưu & Thêm Truyện Vào Thư Viện"**. Ảnh bìa sẽ tự động tải về `cover-images/{gallery_id}.jpg`.
+2. **Kiểm tra URL**: Dán link ảnh từ NHentai (VD: `https://t3.nhentai.net/galleries/4126277/1t.webp`) → Bấm **"Phân tích"**.
+3. Hệ thống tự động bóc tách `gallery_id` và kiểm tra trùng lặp:
+   - **Đã có trong thư viện**: Cho phép thêm chương mới ngay.
+   - **Chưa có**: Nhập số trang → Bấm **"Cập nhật danh sách trang"** → **"Test tải 3 trang đầu"** để kiểm tra.
+4. Điền tên truyện (có **kiểm tra trùng tên thông minh** real-time).
+5. Chọn/nhập tác giả (có gợi ý tự động).
+6. **Chọn thể loại**: Bấm chọn trực tiếp từ danh sách chips.
+7. Bấm **"Lưu & Thêm Truyện Vào Thư Viện"**. Ảnh bìa tự động tải về `cover-images/`.
 
-### 2. Quản lý Thể loại (`/genres.html`)
-- Xem danh sách tất cả các thể loại kèm **số lượng bộ truyện** của từng thể loại.
-- **Thêm thể loại mới** nhanh chóng.
-- **✏️ Đổi tên thể loại**: Cập nhật tên thể loại trên toàn hệ thống.
-- **🗑️ Xóa thể loại**: Gỡ thể loại khỏi tất cả các bộ truyện.
-- **Xem truyện theo thể loại**: Click vào bất kỳ thể loại nào để xem danh sách các bộ truyện thuộc thể loại đó.
+### 2. Đọc truyện (`/reader.html`)
+- **📜 Cuộn dọc (Webtoon)**: Tải toàn bộ ảnh theo chiều dọc.
+- **📄 Từng trang (Manga)**: Xem từng ảnh, dùng phím mũi tên ← / → trên bàn phím.
+- Nút **⇦ Chương trước** và **Chương sau ⇨** ở chân trang.
 
-### 3. Quản lý Tác giả (`/authors.html`)
-- Xem danh sách tất cả các tác giả và số lượng tác phẩm tương ứng.
-- **✏️ Đổi tên tác giả hàng loạt**: Cập nhật tên mới cho toàn bộ các truyện của tác giả đó.
-- Click vào tác giả để xem toàn bộ danh mục truyện của tác giả đó.
+### 3. Quản lý Thể loại (`/genres.html`)
+- CRUD thể loại đầy đủ: Thêm, Sửa tên, Xóa.
+- Xem truyện theo thể loại.
 
-### 4. Đọc truyện (`/reader.html`)
-- Chuyển đổi giữa 2 chế độ đọc:
-  - **📜 Cuộn dọc (Webtoon)**: Tải toàn bộ ảnh theo chiều dọc
-  - **📄 Từng trang (Manga)**: Xem từng ảnh, bấm Next/Prev hoặc dùng **phím mũi tên $\leftarrow$ / $\rightarrow$** trên bàn phím
-- Nút **⇦ Chương trước** và **Chương sau ⇨** ở chân trang giúp chuyển chương liền mạch.
+### 4. Quản lý Tác giả (`/authors.html`)
+- Danh sách tác giả kèm số lượng tác phẩm.
+- Đổi tên tác giả hàng loạt.
 
-### 5. Quản lý truyện & chương (Trang chi tiết `/detail.html`)
-- **Sửa thông tin truyện**: Đổi tên, tác giả, chọn lại danh sách thể loại (click chọn thể loại).
-- **Sửa chương**: Thay đổi số thứ tự chương (VD: chuyển chương 1 thành 2) và đổi tên chương.
-- **Thêm chương mới**: Thêm chương trực tiếp từ trang chi tiết.
-- **Xóa truyện**: Xóa toàn bộ dữ liệu trong DB và tự dọn dẹp file ảnh bìa local.
+### 5. Quản lý truyện & chương (`/detail.html`)
+- Sửa thông tin truyện, sửa/xóa/thêm chương.
+- Xóa truyện tự động dọn dẹp DB + ảnh bìa.
 
 ### 6. Tìm kiếm & Lọc (`/search.html`)
-- Tìm kiếm kết hợp theo: Tên truyện, Tác giả, Thể loại (dropdown chọn thể loại).
+- Tìm theo: Tên truyện, Tác giả, Thể loại.
 
 ---
 
 ## 🔧 Cấu hình biến môi trường (`.env`)
 
-File `.env` nằm tại thư mục gốc:
-
 ```env
+# Bắt buộc
 SUPABASE_URL=https://xxx.supabase.co
 SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
+
+# Tùy chọn
+BACKEND_HOST=0.0.0.0
+BACKEND_PORT=8000
+COVER_IMAGES_DIR=cover-images
+CACHE_FILE=comics_cache.json
 ```
 
 ---
 
-## 🗄️ Database
+## 🗄️ Database Schema
 
-Schema SQL nằm trong file `database_schema.sql` gồm:
-- `comics`: Thông tin bộ truyện (tên, tác giả, cover)
-- `genres`: Danh sách thể loại
-- `comic_genres`: Bảng liên kết n-n giữa truyện và thể loại
-- `chapters`: Các chương truyện (`base_url` + `total_pages`)
+| Bảng | Mô tả |
+|---|---|
+| `comics` | Thông tin bộ truyện (tên, tác giả, cover, gallery_id) |
+| `genres` | Danh sách thể loại (UNIQUE name) |
+| `comic_genres` | Bảng liên kết nhiều-nhiều giữa truyện và thể loại |
+| `chapters` | Chương truyện (`base_url` + `start_page` + `end_page`) |
 
 ---
 
 ## 💡 Cơ chế lưu trữ ảnh không tốn dung lượng
 
 1. **Không tải toàn bộ ảnh chương về máy**.
-2. Database chỉ lưu **URL trang đầu tiên** (`base_url`) và **số trang** (`total_pages`).
-3. Khi đọc, backend/frontend **render dãy URL động**:
+2. Database chỉ lưu **URL trang đầu tiên** (`base_url`) và **khoảng trang** (`start_page` → `end_page`).
+3. Khi đọc, frontend **render dãy URL động**:
    ```
-   Trang 1: https://i3.hentaifox.com/004/4029076/1t.jpg
-   Trang 2: https://i3.hentaifox.com/004/4029076/2t.jpg
+   Trang 1: https://i.nhentai.net/galleries/4126277/1.webp
+   Trang 2: https://i.nhentai.net/galleries/4126277/2.webp
    ...
    ```
-4. Frontend tải ảnh trực tiếp qua CDN nguồn với thuộc tính `referrerpolicy="no-referrer"`.
-5. **Chỉ ảnh bìa** được tải về local `cover-images/` đặt theo `gallery_id` (VD: `4029076.jpg`). Nếu ảnh lỗi, tự động dùng ảnh dự phòng `rem.jpg`.
-
----
-
-## 🔄 Khôi phục dữ liệu từ Cache (Disaster Recovery)
-
-Nếu bạn lỡ xóa database Supabase hoặc tạo một project Supabase hoàn toàn mới:
-
-1. Tạo file `.env` chứa URL và Service Role Key của database mới.
-2. Chạy file `database_schema.sql` trong **Supabase SQL Editor** để tạo các bảng.
-3. Mở terminal và chạy lệnh:
-   ```powershell
-   cd D:\AI_My_Project\HManga-library\backend
-   python restore_from_cache.py
-   ```
-Toàn bộ thể loại, truyện tranh, các chương và ảnh bìa trong `comics_cache.json` sẽ được tự động phục hồi 100%!
+4. Frontend tải ảnh trực tiếp qua CDN nguồn với `referrerpolicy="no-referrer"`.
+5. **Smart Fallback**: Nếu ảnh `.webp` lỗi, tự động thử `.jpg` → `.png` → `.jpeg` → ảnh dự phòng `rem.jpg`.
+6. **Chỉ ảnh bìa** được tải về local `cover-images/` đặt theo `gallery_id`.

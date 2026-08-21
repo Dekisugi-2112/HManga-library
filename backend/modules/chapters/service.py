@@ -55,7 +55,7 @@ def create_chapter(comic_id, chapter_data: ChapterCreate):
     real_id = resolve_comic_id(comic_id)
     if real_id is None:
         raise ValueError(f"Không tìm thấy bộ truyện với ID: {comic_id}")
-    chapter_dict = chapter_data.dict()
+    chapter_dict = chapter_data.model_dump()
     chapter_dict["comic_id"] = real_id
     response = supabase.table("chapters").insert(chapter_dict).execute()
     update_cache()
@@ -72,7 +72,7 @@ def update_chapter(chapter_id: int, chapter_data: ChapterUpdate):
     Cập nhật thông tin của một chapter theo `chapter_id`.
     - Cập nhật các trường được truyền và cập nhật lại cache.
     """
-    update_dict = {k: v for k, v in chapter_data.dict().items() if v is not None}
+    update_dict = {k: v for k, v in chapter_data.model_dump().items() if v is not None}
     response = supabase.table("chapters").update(update_dict).eq("id", chapter_id).execute()
     update_cache()
     if not response.data:
@@ -98,9 +98,9 @@ def generate_pages(chapter_id: int):
     
     Cơ chế:
     - Phân tích chuỗi số thứ tự và phần đuôi file từ `base_url` bằng Regular Expression (Regex).
-      Ví dụ URL mẫu: 'https://i3.hentaifox.com/004/4029076/1.jpg' hoặc '1t.jpg'
-      -> Tách prefix: 'https://i3.hentaifox.com/004/4029076/'
-      -> Tách suffix: '.jpg' hoặc 't.jpg'
+      Ví dụ URL mẫu: 'https://i.nhentai.net/galleries/4126277/1.webp' hoặc '1t.webp'
+      -> Tách prefix: 'https://i.nhentai.net/galleries/4126277/'
+      -> Tách suffix: '.webp' hoặc 't.webp'
     - Tạo vòng lặp từ `start_page` đến `end_page` để ráp thành danh sách đầy đủ.
     """
     response = supabase.table("chapters").select("*").eq("id", chapter_id).execute()
@@ -130,5 +130,8 @@ def generate_pages(chapter_id: int):
     # Loại bỏ tiền tố 't' trong đuôi file (VD: 't.jpg' -> '.jpg') để tải ảnh gốc Full HD cực nét khi đọc
     clean_suffix = re.sub(r'^t\.', '.', suffix, flags=re.IGNORECASE)
     
+    # NHentai: chuyển domain thumbnail (t/t1-t4.nhentai.net) sang domain ảnh gốc (i/i1-i4.nhentai.net)
+    clean_prefix = re.sub(r'://t(\d*)\.nhentai\.net/', r'://i\1.nhentai.net/', prefix)
+    
     # Sinh danh sách các URL trang ảnh hoàn chỉnh từ start_page đến end_page với chất lượng gốc cao nhất
-    return [f"{prefix}{i}{clean_suffix}" for i in range(start_page, end_page + 1)]
+    return [f"{clean_prefix}{i}{clean_suffix}" for i in range(start_page, end_page + 1)]

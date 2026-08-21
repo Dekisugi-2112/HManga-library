@@ -13,7 +13,6 @@ Cách sử dụng:
 """
 
 import sys
-import os
 import json
 import asyncio
 from pathlib import Path
@@ -22,7 +21,7 @@ from pathlib import Path
 if sys.platform == "win32":
     try:
         sys.stdout.reconfigure(encoding="utf-8")
-    except:
+    except Exception:
         pass
 
 # Đảm bảo đường dẫn import hoạt động đúng
@@ -151,7 +150,7 @@ async def restore_database():
                             "comic_id": real_comic_id,
                             "genre_id": g_id
                         }).execute()
-                    except:
+                    except Exception:
                         pass
 
             # 3. Phục hồi các Chapter
@@ -198,9 +197,30 @@ async def restore_database():
             print(f"❌ Lỗi khi phục hồi bộ truyện '{title}': {ce}")
 
     # -------------------------------------------------------------------------
-    # BƯỚC 3: Đồng bộ lại Cache
+    # BƯỚC 3: Reset Auto-Increment Sequences (tránh lỗi trùng ID khi thêm mới)
     # -------------------------------------------------------------------------
-    print("\n--- [3/3] Đồng bộ lại Cache JSON ---")
+    print("\n--- [3/4] Đồng bộ lại Auto-Increment Sequences ---")
+    try:
+        # Khi insert với ID cụ thể, PostgreSQL sequence không tự cập nhật.
+        # Cần reset sequence để ID tiếp theo = MAX(id) + 1, tránh lỗi duplicate key.
+        sequence_reset_sql = """
+            SELECT setval('comics_id_seq', COALESCE((SELECT MAX(id) FROM comics), 0) + 1, false);
+            SELECT setval('chapters_id_seq', COALESCE((SELECT MAX(id) FROM chapters), 0) + 1, false);
+            SELECT setval('genres_id_seq', COALESCE((SELECT MAX(id) FROM genres), 0) + 1, false);
+        """
+        supabase.rpc('exec_sql', {'query': sequence_reset_sql}).execute()
+        print("✅ Đã reset sequences thành công (comics, chapters, genres).")
+    except Exception as seq_err:
+        print(f"⚠️ Không thể tự động reset sequence qua RPC: {seq_err}")
+        print("   💡 Nếu gặp lỗi trùng ID khi thêm truyện mới, hãy chạy SQL sau trong Supabase SQL Editor:")
+        print("      SELECT setval('comics_id_seq', COALESCE((SELECT MAX(id) FROM comics), 0) + 1, false);")
+        print("      SELECT setval('chapters_id_seq', COALESCE((SELECT MAX(id) FROM chapters), 0) + 1, false);")
+        print("      SELECT setval('genres_id_seq', COALESCE((SELECT MAX(id) FROM genres), 0) + 1, false);")
+
+    # -------------------------------------------------------------------------
+    # BƯỚC 4: Đồng bộ lại Cache
+    # -------------------------------------------------------------------------
+    print("\n--- [4/4] Đồng bộ lại Cache JSON ---")
     update_cache()
     print("✅ Đã cập nhật lại file 'comics_cache.json'!")
 

@@ -66,7 +66,7 @@
                 </div>
 
                 <!-- Ảnh trang truyện hiển thị full khung hình -->
-                <img id="single-page-img" class="page-reading-image" src="" alt="Trang truyện" referrerpolicy="no-referrer" style="display:none;">
+                <img id="single-page-img" class="page-reading-image" src="" alt="Trang truyện" referrerpolicy="no-referrer" onerror="handleImageFallback(this)" style="display:none;">
 
                 <!-- Vùng nhấp chuột bên Phải (Trang tiếp theo) -->
                 <div class="click-zone click-zone-right" id="zone-next" title="Nhấp hoặc lăn chuột xuống để sang trang sau">
@@ -207,7 +207,7 @@
                          loading="lazy" 
                          referrerpolicy="no-referrer"
                          onload="if(this.naturalWidth&&this.naturalHeight){this.style.aspectRatio=this.naturalWidth+' / '+this.naturalHeight;}"
-                         onerror="this.onerror=null; this.src='rem.jpg'; this.style.maxHeight='300px';">
+                         onerror="handleImageFallback(this)">
                 </div>`
             ).join('');
         }
@@ -218,6 +218,7 @@
         function updateSinglePageView() {
             if (pageUrls.length === 0) return;
             const img = document.getElementById('single-page-img');
+            img.dataset.triedExts = '';
             img.src = pageUrls[currentPageIndex];
             img.alt = `Page ${currentPageIndex + 1}`;
             img.setAttribute('data-page', currentPageIndex + 1);
@@ -237,9 +238,16 @@
                 updateSinglePageView();
             } else if (nextChapterId) {
                 // Đã đến trang cuối cùng -> hỏi chuyển chương sau
-                if (confirm('Bạn đã đọc hết chương này. Bạn có muốn chuyển sang Chương sau không?')) {
-                    window.location.href = `reader.html?id=${nextChapterId}${comicId ? '&comic_id=' + comicId : ''}`;
-                }
+                showConfirmModal({
+                    title: '📖 Hết chương',
+                    message: 'Bạn đã đọc hết chương này. Bạn có muốn chuyển sang <strong>Chương sau</strong> không?',
+                    confirmText: 'Chương sau ⏭️',
+                    cancelText: 'Ở lại',
+                    type: 'primary',
+                    onConfirm: () => {
+                        window.location.href = `reader.html?id=${nextChapterId}${comicId ? '&comic_id=' + comicId : ''}`;
+                    }
+                });
             }
         }
 
@@ -249,9 +257,16 @@
                 updateSinglePageView();
             } else if (prevChapterId) {
                 // Đang ở trang 1 -> hỏi về chương trước
-                if (confirm('Bạn đang ở đầu chương. Bạn có muốn quay lại Chương trước không?')) {
-                    window.location.href = `reader.html?id=${prevChapterId}${comicId ? '&comic_id=' + comicId : ''}`;
-                }
+                showConfirmModal({
+                    title: '📖 Đầu chương',
+                    message: 'Bạn đang ở đầu chương. Bạn có muốn quay lại <strong>Chương trước</strong> không?',
+                    confirmText: '⏮️ Chương trước',
+                    cancelText: 'Ở lại',
+                    type: 'primary',
+                    onConfirm: () => {
+                        window.location.href = `reader.html?id=${prevChapterId}${comicId ? '&comic_id=' + comicId : ''}`;
+                    }
+                });
             }
         }
 

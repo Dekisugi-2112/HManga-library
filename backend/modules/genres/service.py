@@ -113,7 +113,7 @@ def update_genre(genre_id: int, new_name: str):
                 # Đếm số lượng truyện của thể loại này sau khi đổi tên
                 comic_genres_res = supabase.table("comic_genres").select("comic_id").eq("genre_id", genre_id).execute()
                 genre["comic_count"] = len(comic_genres_res.data or [])
-            except:
+            except Exception:
                 genre["comic_count"] = 0
             return genre
     except HTTPException:

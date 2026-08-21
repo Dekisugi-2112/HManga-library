@@ -5,7 +5,7 @@ Chapters Schemas Module
 Hỗ trợ phân chia chapter theo khoảng trang: start_page -> end_page.
 """
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, model_validator, ConfigDict
 from typing import Optional
 
 class ChapterBase(BaseModel):
@@ -58,5 +58,4 @@ class ChapterResponse(BaseModel):
             self.total_pages = max(1, self.end_page - self.start_page + 1)
         return self
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

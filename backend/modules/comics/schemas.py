@@ -5,7 +5,7 @@ Comics Schemas Module
 và định dạng dữ liệu trả về cho các API liên quan đến truyện tranh (Comics).
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 
 class ComicBase(BaseModel):
@@ -13,7 +13,7 @@ class ComicBase(BaseModel):
     Schema cơ sở chứa các trường thông tin cơ bản của một bộ truyện:
     - title: Tên bộ truyện (bắt buộc)
     - author: Tên tác giả (tùy chọn)
-    - source_url: Link gốc tham khảo từ hentaifox (tùy chọn)
+    - source_url: Link gốc tham khảo từ nhentai (tùy chọn)
     - gallery_id: Mã ID định dạng 'xxx-xxxxx' (VD: '001-48410')
     - genres: Danh sách tên các thể loại được chọn (mặc định rỗng)
     """
@@ -56,8 +56,7 @@ class ComicResponse(BaseModel):
     genres: List[str] = []
     cover_filename: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ComicDetailResponse(ComicResponse):
     """

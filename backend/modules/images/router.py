@@ -9,17 +9,9 @@ Nhiệm vụ:
 from fastapi import APIRouter
 from pydantic import BaseModel
 import modules.images.service as service
+from modules.images.schemas import DownloadCoverRequest
 
 router = APIRouter(prefix="/api/images", tags=["images"])
-
-class DownloadCoverRequest(BaseModel):
-    """
-    Schema yêu cầu tải ảnh bìa:
-    - url: Link ảnh bìa từ nguồn (hentaifox)
-    - comic_id: ID của bộ truyện cần gán ảnh bìa
-    """
-    url: str
-    comic_id: int
 
 @router.post("/download-cover")
 async def download_cover(request: DownloadCoverRequest):

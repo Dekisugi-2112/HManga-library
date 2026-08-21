@@ -19,7 +19,7 @@ def search_comics(q: str = None, genre: str = None, author: str = None):
     4. Trả về danh sách truyện thỏa mãn tất cả các điều kiện.
     """
     # 1. Khởi tạo truy vấn cơ bản từ bảng comics
-    query = supabase.table("comics").select("id, title, author, cover_filename, source_url").order("id", desc=False)
+    query = supabase.table("comics").select("id, title, author, cover_filename, source_url, gallery_id").order("id", desc=False)
     
     # Lọc theo tên tác giả nếu có
     if author:
@@ -27,6 +27,7 @@ def search_comics(q: str = None, genre: str = None, author: str = None):
     # Lọc theo tên truyện hoặc mã gallery/cover nếu có
     if q:
         clean_q = q.strip()
+        clean_q = clean_q.replace(',', '').replace('(', '').replace(')', '')
         # Tìm theo tiêu đề, cover_filename hoặc source_url
         query = query.or_(f"title.ilike.%{clean_q}%,cover_filename.ilike.%{clean_q}%,source_url.ilike.%{clean_q}%")
         

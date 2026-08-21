@@ -7,7 +7,7 @@ Genres Schemas Module
 - GenreResponse: Dữ liệu trả về cho client (gồm id, tên, và số lượng truyện thuộc thể loại).
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 
 class GenreCreate(BaseModel):
@@ -29,5 +29,4 @@ class GenreResponse(BaseModel):
     name: str
     comic_count: Optional[int] = 0
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
